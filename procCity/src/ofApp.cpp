@@ -4,6 +4,15 @@
 void ofApp::setup(){
     debug = true;
     
+    cam.removeAllInteractions();
+    cam.addInteraction(ofEasyCam::TRANSFORM_TRANSLATE_XY,OF_MOUSE_BUTTON_LEFT);
+    cam.addInteraction(ofEasyCam::TRANSFORM_TRANSLATE_Z, OF_MOUSE_BUTTON_RIGHT);
+    
+    cam.enableOrtho();
+    cam.setNearClip(-1000000);
+    cam.setFarClip(1000000);
+    cam.setVFlip(true);
+    
     city.setup();
 }
 
@@ -16,7 +25,7 @@ void ofApp::update(){
 void ofApp::draw(){
     ofSetBackgroundColor(ofColor(0));
 
-//    cam.begin();
+    cam.begin();
     
     if(debug){
         city.pop_map.draw(0,0,city.map_size,city.map_size);
@@ -24,7 +33,7 @@ void ofApp::draw(){
     }
     
     city.draw();
-//    cam.end();
+    cam.end();
     
     city.printDebug();
 }

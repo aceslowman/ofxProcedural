@@ -22,8 +22,6 @@ void ofProceduralCity::setup(){
     road_scalar = map_size/2.0f;
     
     ofVec2f i_start = ofVec2f(map_size/2,map_size/2);
-//    ofVec2f i_direction = ofVec2f(ofRandom(-1.0f, 1.0f),ofRandom(-1.0f, 1.0f));
-//    ofVec2f i_end = i_start + (i_direction * road_scalar);
     ofVec2f i_end = ofVec2f(map_size/2,map_size/2);
     
     pending_list.push_back(RoadSegment(0, i_start, i_end));
@@ -38,14 +36,14 @@ void ofProceduralCity::setup(){
 
         ofLog(OF_LOG_NOTICE, "New Road From Pending: ("+ofToString(i_start)+")("+ofToString(i_end)+") ---------------------------");
         
-        bool accepted = localConstraints(r); //TODO: pay attention to intersections, starting here
+        bool accepted = localConstraints(r);
         
         if(accepted){
             placed_list.push_back(r);
             generateFromGlobalGoals(r);
         }
         
-        pending_list.erase(pending_list.begin()); //an element does seem to erase properly
+        pending_list.erase(pending_list.begin());
     }
     
     setupDebug();
@@ -54,7 +52,7 @@ void ofProceduralCity::setup(){
 void ofProceduralCity::setupDebug(){
     mesh.setMode(OF_PRIMITIVE_POINTS);
     intersectionMesh.setMode(OF_PRIMITIVE_POINTS);
-    glPointSize(9);
+
     
     for(auto &r : placed_list){
         mesh.addVertex(ofVec3f(r.end.x,r.end.y,0));
@@ -62,7 +60,6 @@ void ofProceduralCity::setupDebug(){
         
         r.debugLine.addVertex(ofVec3f(r.start.x,r.start.y,0));
         r.debugLine.addVertex(ofVec3f(r.end.x,r.end.y,0));
-//        r.debug
     }
 }
 
@@ -100,8 +97,11 @@ bool ofProceduralCity::localConstraints(RoadSegment &a){
             if(intersect){
                 ofLog(OF_LOG_NOTICE, "      Intersection found at: " + ofToString(intersection));
                 a.end = intersection;
+                a.population = samplePopulation(a.end);
                 intersectionMesh.addVertex(ofVec3f(intersection.x,intersection.y,0));
                 intersectionMesh.addColor(ofColor(255,0,0));
+                
+                //make sure population is changed as well!
                 break;
             }
         }
@@ -204,7 +204,9 @@ void ofProceduralCity::draw(){
         }
     }
     
+    glPointSize(9);
     mesh.draw();
+    glPointSize(5);
     intersectionMesh.draw();
 }
 
@@ -213,5 +215,4 @@ void ofProceduralCity::printDebug(){
     ofDrawBitmapString("Segment List: " + ofToString(placed_list.size()), 10, 30);
     ofDrawBitmapString("Total Nodes: " + ofToString(mesh.getVertices().size()), 10, 45);
     ofDrawBitmapString("Global Walk: " + ofToString(global_walk), 10, 75);
-    
 }
