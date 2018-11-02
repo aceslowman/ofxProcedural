@@ -38,20 +38,23 @@ public:
     float road_scalar;
     
     ofMesh mesh;
+    ofMesh intersectionMesh;
     vector<ofVec3f> points;
     
 private:
     void setupDebug();
     
-    bool localConstraints(RoadSegment &r);
-    vector<RoadSegment> globalGoals(RoadSegment &r);
+    bool localConstraints(RoadSegment &a);
+    void generateFromGlobalGoals(RoadSegment a);
     
     bool globalBoundsCheck(ofVec2f &node);
-    bool getLineIntersection(ofVec2f p0, ofVec2f p1, ofVec2f p2, ofVec2f p3, ofVec2f *intersection);
+    bool getLineIntersection(ofVec2f p0, ofVec2f p1, ofVec2f p2, ofVec2f p3, ofVec2f &intersection);
     static bool sortByDelay(RoadSegment A, RoadSegment B);
     
-    vector<RoadSegment> priority_list;
-    vector<RoadSegment> segment_list;
+    int samplePopulation(ofVec2f s);
+    
+    vector<RoadSegment> pending_list;
+    vector<RoadSegment> placed_list;
     
     int global_counter;
 };

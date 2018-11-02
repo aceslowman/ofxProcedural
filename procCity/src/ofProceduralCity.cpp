@@ -6,9 +6,6 @@ RoadSegment::RoadSegment(float _time_delay, ofVec2f _start, ofVec2f _end){
     time_delay = _time_delay;
     start      = _start;
     end        = _end;
-    
-    debugLine.addVertex(start.x, start.y);
-    debugLine.addVertex(end.x, end.y);
 }
 
 //-----------------------------------------------------------------------------
@@ -22,28 +19,33 @@ void ofProceduralCity::setup(){
     ofSetWindowShape(map_size, map_size);
     ofSetWindowPosition((ofGetScreenWidth() / 2.0)-(map_size/2.0), (ofGetScreenHeight() / 2.0)-(map_size/2.0));
     
-    road_scalar = map_size/5.0f;
+    road_scalar = map_size/2.0f;
     
-    priority_list.push_back(RoadSegment(0, ofVec2f(map_size/2,map_size/2), ofVec2f(map_size/2,map_size/2)));
-    segment_list.empty();
+    ofVec2f i_start = ofVec2f(map_size/2,map_size/2);
+//    ofVec2f i_direction = ofVec2f(ofRandom(-1.0f, 1.0f),ofRandom(-1.0f, 1.0f));
+//    ofVec2f i_end = i_start + (i_direction * road_scalar);
+    ofVec2f i_end = ofVec2f(map_size/2,map_size/2);
     
-    while(priority_list.size() > 0){
-        std::sort (priority_list.begin(), priority_list.end(), sortByDelay);
-        RoadSegment r = priority_list.front();
+    pending_list.push_back(RoadSegment(0, i_start, i_end));
+    placed_list.empty();
+    
+    ofLog(OF_LOG_NOTICE, "initial point: ("+ofToString(i_start)+")("+ofToString(i_end)+")----------------------------------");
+    
+    while(pending_list.size() > 0){
+        ofLog(OF_LOG_NOTICE, "  sorting pending_list");
+        std::sort (pending_list.begin(), pending_list.end(), sortByDelay);
+        RoadSegment &r = pending_list.front();
+
+        ofLog(OF_LOG_NOTICE, "New Road From Pending: ("+ofToString(i_start)+")("+ofToString(i_end)+") ---------------------------");
         
-        //currently, each node START is equal to the first node's END?
         bool accepted = localConstraints(r); //TODO: pay attention to intersections, starting here
         
         if(accepted){
-            segment_list.push_back(r);
-            
-            for(auto _r : globalGoals(r)){
-                priority_list.push_back(_r);
-                global_counter++;
-            }
+            placed_list.push_back(r);
+            generateFromGlobalGoals(r);
         }
         
-        priority_list.erase(priority_list.begin());
+        pending_list.erase(pending_list.begin()); //an element does seem to erase properly
     }
     
     setupDebug();
@@ -51,73 +53,105 @@ void ofProceduralCity::setup(){
 
 void ofProceduralCity::setupDebug(){
     mesh.setMode(OF_PRIMITIVE_POINTS);
-    glPointSize(5);
+    intersectionMesh.setMode(OF_PRIMITIVE_POINTS);
+    glPointSize(9);
     
-    for(auto r : segment_list){
+    for(auto &r : placed_list){
         mesh.addVertex(ofVec3f(r.end.x,r.end.y,0));
         mesh.addColor(ofColor(r.population));
+        
+        r.debugLine.addVertex(ofVec3f(r.start.x,r.start.y,0));
+        r.debugLine.addVertex(ofVec3f(r.end.x,r.end.y,0));
+//        r.debug
     }
 }
 
 //-----------------------------------------------------------------------------
-bool ofProceduralCity::localConstraints(RoadSegment &r){
+bool ofProceduralCity::localConstraints(RoadSegment &a){
+    ofLog(OF_LOG_NOTICE, "  checking local constraints  at point: ("+ofToString(a.start)+")("+ofToString(a.end)+")");
+    
     /*
         Checks for intersection between segments, truncating the initial segment
         at the intersection point
      */
-    ofVec2f intersection = ofVec2f(0,0);
     
-    for(auto b : segment_list){ // this is gonna be a lot of iterations...
-            bool intersect = getLineIntersection(r.start, r.end, b.start, b.end, &intersection);
-            if(intersect){
-                ofLog(OF_LOG_NOTICE, "Intersection found at: " + ofToString(intersection));
-//                r.end = intersection;
+    for(auto b : placed_list){ //
+        if(&a != &b){
+            ofVec2f intersection = ofVec2f(0,0);
+            
+            if (
+                (((int)a.start.x == (int)b.start.x) && ((int)a.start.y == (int)b.start.y)) ||
+                ((int)(a.end.x == b.end.x) && (int)(a.end.y == b.end.y)) ||
+                ((int)(a.start.x == b.end.x) && (int)(a.start.y == b.end.y)) ||
+                ((int)(a.end.x == b.start.x) && (int)(a.end.y == b.start.y))){
+                break;
             }
+            
+            bool intersect = getLineIntersection(a.start, a.end, b.start, b.end, intersection);
+            
+            ofLog(OF_LOG_NOTICE, "      Comparing:");
+            ofLog(OF_LOG_NOTICE, "          A");
+            ofLog(OF_LOG_NOTICE, "              Start: (" + ofToString(a.start) + ")");
+            ofLog(OF_LOG_NOTICE, "              End: (" + ofToString(a.end) + ")");
+            ofLog(OF_LOG_NOTICE, "          B");
+            ofLog(OF_LOG_NOTICE, "              Start: (" + ofToString(b.start) + ")");
+            ofLog(OF_LOG_NOTICE, "              End: (" + ofToString(b.end) + ")");
+            
+            if(intersect){
+                ofLog(OF_LOG_NOTICE, "      Intersection found at: " + ofToString(intersection));
+                a.end = intersection;
+                intersectionMesh.addVertex(ofVec3f(intersection.x,intersection.y,0));
+                intersectionMesh.addColor(ofColor(255,0,0));
+                break;
+            }
+        }
     }
     
     return true;
 }
 
-//-----------------------------------------------------------------------------
-vector<RoadSegment> ofProceduralCity::globalGoals(RoadSegment &r){
+void ofProceduralCity::generateFromGlobalGoals(RoadSegment a){
+    ofLog(OF_LOG_NOTICE, "  generating global goals at point: ("+ofToString(a.start)+")("+ofToString(a.end)+")");
+    
     vector<RoadSegment> t_priority;
     
     int max_goals;
     
-    if(global_counter <= 1000){
+    if(global_counter <= 100){
         max_goals = 2;
     }else{
         max_goals = 0;
     }
     
     for(int i = 0; i < max_goals; i++){
-        ofVec2f start = r.end;
+        ofVec2f start = a.end;
         ofVec2f direction = ofVec2f(ofRandom(-1.0f, 1.0f),ofRandom(-1.0f, 1.0f));
         ofVec2f end = start + (direction * road_scalar);
-
-        ofLog(OF_LOG_NOTICE, "-------------------------------");
 
         bool valid = globalBoundsCheck(end);
         
         if(valid){
-            RoadSegment _r(r.time_delay + 1, start, end);
+            RoadSegment new_road(a.time_delay + 1, start, end);
             
-            ofPixels &pix = pop_map.getPixels();
-            ofColor color = ofColor(0);
+            new_road.population = samplePopulation(end);
             
-            _r.population = pix.getColor(end.x,end.y).r;
-            
-            ofLog(OF_LOG_NOTICE, "start: " + ofToString(start));
-            ofLog(OF_LOG_NOTICE, "end: " + ofToString(end));
-            ofLog(OF_LOG_NOTICE, "population: " + ofToString(_r.population));
-            
-            t_priority.push_back(_r);
+            ofLog(OF_LOG_NOTICE, "      creating point at: ("+ofToString(start)+")("+ofToString(end)+")");
+
+            pending_list.push_back(new_road);
+            global_counter++;
         }else{
-            ofLog(OF_LOG_NOTICE, "Attempting to sample out of bounds!");
+            ofLog(OF_LOG_WARNING, "     Attempting to sample out of bounds!");
         }
     }
     
     return t_priority;
+}
+
+int ofProceduralCity::samplePopulation(ofVec2f s){
+    ofPixels &pix = pop_map.getPixels();
+    ofColor color = ofColor(0);
+    
+    return pix.getColor(s.x,s.y).r;
 }
 
 bool ofProceduralCity::globalBoundsCheck(ofVec2f &node){
@@ -139,7 +173,7 @@ bool ofProceduralCity::sortByDelay(RoadSegment A, RoadSegment B){
     via https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
  */
 
-bool ofProceduralCity::getLineIntersection(ofVec2f p0, ofVec2f p1, ofVec2f p2, ofVec2f p3, ofVec2f *intersection){
+bool ofProceduralCity::getLineIntersection(ofVec2f p0, ofVec2f p1, ofVec2f p2, ofVec2f p3, ofVec2f &intersection){
     
     float s1_x, s1_y, s2_x, s2_y;
     s1_x = p1.x - p0.x;     s1_y = p1.y - p0.y;
@@ -150,8 +184,8 @@ bool ofProceduralCity::getLineIntersection(ofVec2f p0, ofVec2f p1, ofVec2f p2, o
     t = ( s2_x * (p0.y - p2.y) - s2_y * (p0.x - p2.x)) / (-s2_x * s1_y + s1_x * s2_y);
     
     if (s >= 0 && s <= 1 && t >= 0 && t <= 1){
-        intersection->x = p0.x + (t * s1_x);
-        intersection->y = p0.y + (t * s1_y);
+        intersection.x = p0.x + (t * s1_x);
+        intersection.y = p0.y + (t * s1_y);
         return true;
     }
     
@@ -164,27 +198,20 @@ bool ofProceduralCity::getLineIntersection(ofVec2f p0, ofVec2f p1, ofVec2f p2, o
 void ofProceduralCity::draw(){
     global_walk = (int)(ofGetElapsedTimeMillis()/500.0);
     
-    for(auto r : segment_list){
+    for(auto r : placed_list){
         if(r.time_delay < global_walk){
             r.debugLine.draw();
         }
     }
     
     mesh.draw();
+    intersectionMesh.draw();
 }
 
 void ofProceduralCity::printDebug(){
-    ofDrawBitmapString("Priority List: " + ofToString(priority_list.size()), 10, 15);
-    ofDrawBitmapString("Segment List: " + ofToString(segment_list.size()), 10, 30);
+    ofDrawBitmapString("Priority List: " + ofToString(pending_list.size()), 10, 15);
+    ofDrawBitmapString("Segment List: " + ofToString(placed_list.size()), 10, 30);
     ofDrawBitmapString("Total Nodes: " + ofToString(mesh.getVertices().size()), 10, 45);
     ofDrawBitmapString("Global Walk: " + ofToString(global_walk), 10, 75);
     
 }
-
-//-----------------------------------------------------------------------------
-
-//for(auto _r : priority_list){
-//    std::cout << "vector (SORTED):";
-//    std::cout << _r.time_delay;
-//    std::cout << endl;
-//    }
