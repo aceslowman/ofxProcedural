@@ -47,7 +47,7 @@ private:
     vector<RoadSegment> globalGoals(RoadSegment &r);
     
     bool globalBoundsCheck(ofVec2f &node);
-    bool checkIntersecting(RoadSegment A);
+    bool getLineIntersection(ofVec2f p0, ofVec2f p1, ofVec2f p2, ofVec2f p3, ofVec2f *intersection);
     static bool sortByDelay(RoadSegment A, RoadSegment B);
     
     vector<RoadSegment> priority_list;

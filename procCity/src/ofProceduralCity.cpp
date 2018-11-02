@@ -31,7 +31,8 @@ void ofProceduralCity::setup(){
         std::sort (priority_list.begin(), priority_list.end(), sortByDelay);
         RoadSegment r = priority_list.front();
         
-        bool accepted = localConstraints(r);
+        //currently, each node START is equal to the first node's END?
+        bool accepted = localConstraints(r); //TODO: pay attention to intersections, starting here
         
         if(accepted){
             segment_list.push_back(r);
@@ -61,12 +62,18 @@ void ofProceduralCity::setupDebug(){
 //-----------------------------------------------------------------------------
 bool ofProceduralCity::localConstraints(RoadSegment &r){
     /*
-     Determine constraints from environment
-     
-     checks the segment for compatibility with all previously placed segments and may modify its geometry if necessary, for example to join the end of the segment to a nearby junction.
+        Checks for intersection between segments, truncating the initial segment
+        at the intersection point
      */
+    ofVec2f intersection = ofVec2f(0,0);
     
-    // TODO: DO I PERFORM INTERSECTION CHECKS HERE IN LOCAL? OR SHOULD I IN GLOBAL?
+    for(auto b : segment_list){ // this is gonna be a lot of iterations...
+            bool intersect = getLineIntersection(r.start, r.end, b.start, b.end, &intersection);
+            if(intersect){
+                ofLog(OF_LOG_NOTICE, "Intersection found at: " + ofToString(intersection));
+//                r.end = intersection;
+            }
+    }
     
     return true;
 }
@@ -127,63 +134,30 @@ bool ofProceduralCity::sortByDelay(RoadSegment A, RoadSegment B){
 
 //-----------------------------------------------------------------------------
 
-bool onSegment(ofVec2f p, ofVec2f q, ofVec2f r)
-{
-    if (q.x <= max(p.x, r.x) && q.x >= min(p.x, r.x) &&
-        q.y <= max(p.y, r.y) && q.y >= min(p.y, r.y))
+/*
+    From Andre LeMothe's "Tricks of the Windows Game Programming Gurus"
+    via https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
+ */
+
+bool ofProceduralCity::getLineIntersection(ofVec2f p0, ofVec2f p1, ofVec2f p2, ofVec2f p3, ofVec2f *intersection){
+    
+    float s1_x, s1_y, s2_x, s2_y;
+    s1_x = p1.x - p0.x;     s1_y = p1.y - p0.y;
+    s2_x = p3.x - p2.x;     s2_y = p3.y - p2.y;
+    
+    float s, t;
+    s = (-s1_y * (p0.x - p2.x) + s1_x * (p0.y - p2.y)) / (-s2_x * s1_y + s1_x * s2_y);
+    t = ( s2_x * (p0.y - p2.y) - s2_y * (p0.x - p2.x)) / (-s2_x * s1_y + s1_x * s2_y);
+    
+    if (s >= 0 && s <= 1 && t >= 0 && t <= 1){
+        intersection->x = p0.x + (t * s1_x);
+        intersection->y = p0.y + (t * s1_y);
         return true;
+    }
     
     return false;
 }
 
-int checkOrientation(ofVec2f p, ofVec2f q, ofVec2f r){
-    int val = (q.y - p.y) * (r.x - q.x) -
-    (q.x - p.x) * (r.y - q.y);
-    
-    if (val == 0) return 0;  // colinear
-    
-    return (val > 0)? 1: 2; // clock or counterclock wise
-}
-
-bool ofProceduralCity::checkIntersecting(RoadSegment A){
-    
-//    How is Orientation useful here?
-//    Two segments (p1,q1) and (p2,q2) intersect if and only if one of the following two conditions is verified
-//
-//        1. General Case:
-//        – (p1, q1, p2) and (p1, q1, q2) have different orientations and
-//        – (p2, q2, p1) and (p2, q2, q1) have different orientations.
-    
-    for(auto B : segment_list){
-        bool o1 = checkOrientation(A.start, A.end, B.start);
-        bool o2 = checkOrientation(A.start, A.end, B.end);
-        bool o3 = checkOrientation(B.start, B.end, A.start);
-        bool o4 = checkOrientation(B.start, B.end, A.end);
-        
-        //let's return the point at which the intersection occurs...
-        
-        
-        // General case
-        if (o1 != o2 && o3 != o4){
-            return true;
-        }
-        
-        // Special Cases
-        // p1, q1 and p2 are colinear and p2 lies on segment p1q1
-        if (o1 == 0 && onSegment(A.start, B.start, A.end)) return true;
-        
-        // p1, q1 and q2 are colinear and q2 lies on segment p1q1
-        if (o2 == 0 && onSegment(A.start, B.end, A.end)) return true;
-        
-        // p2, q2 and p1 are colinear and p1 lies on segment p2q2
-        if (o3 == 0 && onSegment(B.start, A.start, B.end)) return true;
-        
-        // p2, q2 and q1 are colinear and q1 lies on segment p2q2
-        if (o4 == 0 && onSegment(B.start, A.end, B.end)) return true;
-        
-        return false; // Doesn't fall in any of the above cases
-    }
-}
 
 //-----------------------------------------------------------------------------
 
