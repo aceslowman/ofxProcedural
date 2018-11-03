@@ -43,6 +43,12 @@ void ofApp::keyPressed(int key){
     if(key == 'd'){
         debug = !debug;
     }
+    if(key == '-' && city.global_walk != 0){
+        city.global_walk--;
+    }
+    if(key == '='){
+        city.global_walk++;
+    }
 }
 
 //--------------------------------------------------------------

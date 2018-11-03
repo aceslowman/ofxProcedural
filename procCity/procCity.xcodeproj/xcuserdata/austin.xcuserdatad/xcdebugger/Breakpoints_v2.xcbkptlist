@@ -10,11 +10,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "src/ofProceduralCity.cpp"
-            timestampString = "562892268.892462"
+            timestampString = "562966680.19581"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "74"
-            endingLineNumber = "74"
+            startingLineNumber = "75"
+            endingLineNumber = "75"
             landmarkName = "ofProceduralCity::localConstraints(RoadSegment &amp;a)"
             landmarkType = "7">
             <Locations>
@@ -26,12 +26,12 @@
                   moduleName = "procCityDebug"
                   usesParentBreakpointCondition = "Yes"
                   urlString = "file:///Users/austin/Documents/of_v0.10.0_osx_release/apps/ofCityGeneration/procCity/src/ofProceduralCity.cpp"
-                  timestampString = "562875957.344375"
+                  timestampString = "562899348.256112"
                   startingColumnNumber = "9223372036854775807"
                   endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "72"
-                  endingLineNumber = "72"
-                  offsetFromSymbolStart = "134">
+                  startingLineNumber = "121"
+                  endingLineNumber = "121"
+                  offsetFromSymbolStart = "3032">
                </Location>
                <Location
                   shouldBeEnabled = "No"
@@ -41,12 +41,27 @@
                   moduleName = "procCityDebug"
                   usesParentBreakpointCondition = "Yes"
                   urlString = "file:///Users/austin/Documents/of_v0.10.0_osx_release/apps/ofCityGeneration/procCity/src/ofProceduralCity.cpp"
-                  timestampString = "562875957.34803"
+                  timestampString = "562899348.262794"
                   startingColumnNumber = "9223372036854775807"
                   endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "72"
-                  endingLineNumber = "72"
-                  offsetFromSymbolStart = "557">
+                  startingLineNumber = "121"
+                  endingLineNumber = "121"
+                  offsetFromSymbolStart = "3224">
+               </Location>
+               <Location
+                  shouldBeEnabled = "No"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "ofProceduralCity::localConstraints(RoadSegment&amp;)"
+                  moduleName = "procCityDebug"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/austin/Documents/of_v0.10.0_osx_release/apps/ofCityGeneration/procCity/src/ofProceduralCity.cpp"
+                  timestampString = "562899348.265435"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "121"
+                  endingLineNumber = "121"
+                  offsetFromSymbolStart = "3244">
                </Location>
             </Locations>
          </BreakpointContent>
