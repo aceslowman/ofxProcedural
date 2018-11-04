@@ -13,6 +13,7 @@ public:
     ofPolyline line;
     
     float getSlope();
+    float getRotation();
     
     RoadSegment(float _ti, ofVec2f _start, ofVec2f _end);
 };
@@ -48,14 +49,15 @@ public:
     bool localConstraints(RoadSegment &a);
     vector<RoadSegment> globalGoals(RoadSegment &a);
     bool globalBoundsCheck(ofVec2f &a);
-    bool constrainIntersections(RoadSegment &a);
-    bool constrainPattern(RoadSegment &a, RoadSegment &b);
+    bool constrainToIntersections(RoadSegment &a);
+    bool constrainToCityPattern(RoadSegment &a, RoadSegment &b);
     
     // utility
     int samplePopulation(ofVec2f s);
     static bool sortByDelay(RoadSegment A, RoadSegment B);
     static bool sortByDistance(ofVec2f A, ofVec2f B, ofVec2f pt);
     bool getLineIntersection(ofVec2f p0, ofVec2f p1, ofVec2f p2, ofVec2f p3, ofVec2f &intersection);
+    float getRoadAngle(ofVec2f A, ofVec2f B, ofVec2f C);
     
     // drawing
     void draw();

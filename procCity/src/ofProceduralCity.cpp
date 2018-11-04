@@ -15,6 +15,10 @@ float RoadSegment::getSlope(){
     return slope;
 }
 
+float RoadSegment::getRotation(){
+    return this->start.angle(end);
+}
+
 //-----------------------------------------------------------------------------
 // SETUP
 //-----------------------------------------------------------------------------
@@ -42,12 +46,11 @@ void ofProceduralCity::setupDebug(){
 
     
     for(auto &r : placed_list){
-        mesh.addVertex(ofVec3f(r.end.x,r.end.y,0));
+        mesh.addVertex((ofVec3f)r.end);
 //        mesh.addColor(ofColor(r.population));
-        mesh.addColor(ofColor(0,255,0));
         
-        r.line.addVertex(ofVec3f(r.start.x,r.start.y,0));
-        r.line.addVertex(ofVec3f(r.end.x,r.end.y,0));
+        r.line.addVertex((ofVec3f)r.start);
+        r.line.addVertex((ofVec3f)r.end);
     }
 }
 
@@ -95,7 +98,7 @@ void ofProceduralCity::generateRoads(){
 bool ofProceduralCity::localConstraints(RoadSegment &a){
     ofLog(OF_LOG_NOTICE, "checking LOCAL CONSTRAINTS at point: ("+ofToString(a.start)+")("+ofToString(a.end)+")");
     
-    constrainIntersections(a);
+    constrainToIntersections(a);
     
     return true;
 }
@@ -123,17 +126,15 @@ vector<RoadSegment> ofProceduralCity::globalGoals(RoadSegment &a){
         if(in_bounds){
             RoadSegment new_road(a.time_delay + 1, start, end);
 
-            //pass new_road by reference, and alter it's end point accordingly. If any return false, discard new_road
-            bool pattern_check = constrainPattern(a, new_road);
+//            bool pattern_check = constrainPattern(a, new_road);
+            bool pattern_check = true;
             
             if(pattern_check){
                 new_road.population = samplePopulation(end);
-                
                 t_priority.push_back(new_road);
             }else{
-                ofLog(OF_LOG_WARNING, "     FAILED PATTERN CHECK, SLOPE WAS NAN");
+                ofLog(OF_LOG_WARNING, "     FAILED PATTERN CHECK");
             }
-
         }else{
             ofLog(OF_LOG_WARNING, "     Attempting to sample out of bounds!");
         }
@@ -150,32 +151,22 @@ bool ofProceduralCity::globalBoundsCheck(ofVec2f &a){
     return true;
 }
 
-bool ofProceduralCity::constrainIntersections(RoadSegment &a){
+bool ofProceduralCity::constrainToIntersections(RoadSegment &a){
     /*
      Checks for intersection between segments, truncating the initial segment
      at the intersection point
      */
     vector<ofVec2f> intersections;
     
-    for(auto b : placed_list){ // b is pulled from placed... are there elements that aren't in placed yet?
-        if(&a != &b){
-            ofVec2f intersection = ofVec2f(0,0);
-            
-            if (
-                (((int)a.start.x == (int)b.start.x) && ((int)a.start.y == (int)b.start.y)) ||
-                ((int)(a.end.x == b.end.x) && (int)(a.end.y == b.end.y)) ||
-                ((int)(a.start.x == b.end.x) && (int)(a.start.y == b.end.y)) ||
-                ((int)(a.end.x == b.start.x) && (int)(a.end.y == b.start.y))){
-                break;
-            }
-            
-            bool intersect = getLineIntersection(a.start, a.end, b.start, b.end, intersection);
-            
-            if(intersect){
-                ofLog(OF_LOG_NOTICE, "      Intersection found at: " + ofToString(intersection));
-                intersections.push_back(intersection);
-                break;
-            }
+    for(auto b : placed_list){
+        if (a.start == b.start || a.end == b.end || a.start == b.end || a.end == b.start) { continue; }
+        
+        ofVec2f intersection = ofVec2f(0,0);
+
+        bool intersect = getLineIntersection(a.start, a.end, b.start, b.end, intersection);
+        if(intersect){
+            ofLog(OF_LOG_NOTICE, "      Intersection found at: " + ofToString(intersection));
+            intersections.push_back(intersection);
         }
     }
     
@@ -186,34 +177,32 @@ bool ofProceduralCity::constrainIntersections(RoadSegment &a){
         a.end = intersections.front();
         a.population = samplePopulation(a.end);
         intersectionMesh.addVertex(ofVec3f(a.end.x,a.end.y,0));
-        intersectionMesh.addColor(ofColor(255,0,0));
     }
     
     return true;
 }
 
-bool ofProceduralCity::constrainPattern(RoadSegment &a, RoadSegment &b){
-    // right here I can implement the road pattern check
-    // what is the angle between the start/end pair, and it's previous (a.start/a.end)?
+bool ofProceduralCity::constrainToCityPattern(RoadSegment &a, RoadSegment &b){
+    // IN PROGRESS
     
-    //find the slope of each line ( start/end ) and ( a.start/a.end )
-    //To find the slope, you divide the difference of the y-coordinates of 2 points on a line by the difference of the x-coordinates of those same 2 points .
+    float angle = getRoadAngle(a.start,a.end,b.end);
+    bool in_bounds = globalBoundsCheck(b.end);
     
-    float slope_a = a.getSlope();
-    float slope_b = b.getSlope();
-    
-    if(isnan(slope_a) || isnan(slope_b)){
-        return false;
+    // BORKEN
+    while((angle < 60 || angle > 120) && in_bounds == true){
+        // nudge b.end
+        ofVec2f direction = ofVec2f(ofRandom(-1.0f, 1.0f),ofRandom(-1.0f, 1.0f));
+        ofVec2f end = b.start + (direction * road_scalar);
+        
+        in_bounds = globalBoundsCheck(end);
+        
+        if(in_bounds){
+            angle = getRoadAngle(a.start,a.end,b.end);
+        }
     }
     
     return true;
-
-//    float inc_1 = atan(slope_1);
-//    float inc_2 = atan(slope_2);
-//
-//    float result = inc_2 - inc_1;
 }
-
 
 //-----------------------------------------------------------------------------
 // UTILITY
@@ -231,7 +220,7 @@ bool ofProceduralCity::sortByDelay(RoadSegment A, RoadSegment B){
 }
 
 bool ofProceduralCity::sortByDistance(ofVec2f A, ofVec2f B, ofVec2f pt){
-    return (pt.distance(A) > pt.distance(B));
+    return (pt.distance(A) < pt.distance(B));
 }
 
 /*
@@ -242,8 +231,10 @@ bool ofProceduralCity::sortByDistance(ofVec2f A, ofVec2f B, ofVec2f pt){
 bool ofProceduralCity::getLineIntersection(ofVec2f p0, ofVec2f p1, ofVec2f p2, ofVec2f p3, ofVec2f &intersection){
     
     float s1_x, s1_y, s2_x, s2_y;
-    s1_x = p1.x - p0.x;     s1_y = p1.y - p0.y;
-    s2_x = p3.x - p2.x;     s2_y = p3.y - p2.y;
+    s1_x = p1.x - p0.x;
+    s1_y = p1.y - p0.y;
+    s2_x = p3.x - p2.x;
+    s2_y = p3.y - p2.y;
     
     float s, t;
     s = (-s1_y * (p0.x - p2.x) + s1_x * (p0.y - p2.y)) / (-s2_x * s1_y + s1_x * s2_y);
@@ -258,23 +249,40 @@ bool ofProceduralCity::getLineIntersection(ofVec2f p0, ofVec2f p1, ofVec2f p2, o
     return false;
 }
 
+/* https://stackoverflow.com/questions/26829161/the-angle-between-3-points-in-c */
+float ofProceduralCity::getRoadAngle(ofVec2f A, ofVec2f B, ofVec2f C){
+    float atanA = atan2(A.x - B.x, A.y - B.y);
+    float atanC = atan2(C.x - B.x, C.y - B.y);
+    float diff = atanC - atanA;
+
+    if (diff > PI) diff -= PI;
+    else if (diff < -PI) diff += PI;
+
+    diff *= 180 / PI;
+
+    return diff;
+}
+
 //-----------------------------------------------------------------------------
 // DRAWING
 //-----------------------------------------------------------------------------
 
 void ofProceduralCity::draw(){
-//    global_walk = (int)(ofGetElapsedTimeMillis()/500.0);
-    
+    ofSetColor(ofColor(255,255,255));
     for(auto r : placed_list){
         if(r.time_delay < global_walk){
             r.line.draw();
+//            ofDrawArrow((ofVec3f)r.start,(ofVec3f)r.end,5.0);
         }
     }
-    
+
     glPointSize(9);
+    ofSetColor(ofColor(0,255,0));
     mesh.draw();
     glPointSize(5);
+    ofSetColor(ofColor(255,0,0));
     intersectionMesh.draw();
+    ofSetColor(ofColor(255,255,255));
 }
 
 void ofProceduralCity::printDebug(){
