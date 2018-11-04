@@ -48,9 +48,11 @@ public:
     // constraint
     bool localConstraints(RoadSegment &a);
     vector<RoadSegment> globalGoals(RoadSegment &a);
-    bool globalBoundsCheck(ofVec2f &a);
     bool constrainToIntersections(RoadSegment &a);
-    bool constrainToCityPattern(RoadSegment &a, RoadSegment &b);
+    bool constrainToCityPattern(RoadSegment &prev, RoadSegment &next);
+    
+    // checks
+    bool globalBoundsCheck(ofVec2f &a);
     
     // utility
     int samplePopulation(ofVec2f s);
@@ -58,6 +60,12 @@ public:
     static bool sortByDistance(ofVec2f A, ofVec2f B, ofVec2f pt);
     bool getLineIntersection(ofVec2f p0, ofVec2f p1, ofVec2f p2, ofVec2f p3, ofVec2f &intersection);
     float getRoadAngle(ofVec2f A, ofVec2f B, ofVec2f C);
+    
+    // city rules
+    void BasicRule();
+    void NewYorkRule();
+    void ParisRule();
+    void SanFranRule();
     
     // drawing
     void draw();

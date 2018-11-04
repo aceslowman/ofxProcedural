@@ -99,6 +99,7 @@ bool ofProceduralCity::localConstraints(RoadSegment &a){
     ofLog(OF_LOG_NOTICE, "checking LOCAL CONSTRAINTS at point: ("+ofToString(a.start)+")("+ofToString(a.end)+")");
     
     constrainToIntersections(a);
+//    constrainCloseTo(a);
     
     return true;
 }
@@ -120,15 +121,14 @@ vector<RoadSegment> ofProceduralCity::globalGoals(RoadSegment &a){
         ofVec2f start = a.end;
         ofVec2f direction = ofVec2f(ofRandom(-1.0f, 1.0f),ofRandom(-1.0f, 1.0f));
         ofVec2f end = start + (direction * road_scalar);
-        
+
         bool in_bounds = globalBoundsCheck(end);
-        
+
         if(in_bounds){
             RoadSegment new_road(a.time_delay + 1, start, end);
 
-//            bool pattern_check = constrainPattern(a, new_road);
-            bool pattern_check = true;
-            
+            bool pattern_check = constrainToCityPattern(a, new_road);
+
             if(pattern_check){
                 new_road.population = samplePopulation(end);
                 t_priority.push_back(new_road);
@@ -143,14 +143,6 @@ vector<RoadSegment> ofProceduralCity::globalGoals(RoadSegment &a){
     return t_priority;
 }
 
-bool ofProceduralCity::globalBoundsCheck(ofVec2f &a){
-    if(a.x >= map_size || a.x <= 0 || a.y >= map_size || a.y <= 0){
-        return false;
-    }
-    
-    return true;
-}
-
 bool ofProceduralCity::constrainToIntersections(RoadSegment &a){
     /*
      Checks for intersection between segments, truncating the initial segment
@@ -158,7 +150,7 @@ bool ofProceduralCity::constrainToIntersections(RoadSegment &a){
      */
     vector<ofVec2f> intersections;
     
-    for(auto b : placed_list){
+    for(auto b : placed_list){ // within this loop, I can do much more than constrain to intersections right?
         if (a.start == b.start || a.end == b.end || a.start == b.end || a.end == b.start) { continue; }
         
         ofVec2f intersection = ofVec2f(0,0);
@@ -182,23 +174,21 @@ bool ofProceduralCity::constrainToIntersections(RoadSegment &a){
     return true;
 }
 
-bool ofProceduralCity::constrainToCityPattern(RoadSegment &a, RoadSegment &b){
-    // IN PROGRESS
+bool ofProceduralCity::constrainToCityPattern(RoadSegment &prev, RoadSegment &next){
+    float random_angle = ofRandom(80, 100);
+
+//    next.end = ofVec2f(0,0);
+//    next.end.rotate(random_angle,next.start);
     
-    float angle = getRoadAngle(a.start,a.end,b.end);
-    bool in_bounds = globalBoundsCheck(b.end);
-    
-    // BORKEN
-    while((angle < 60 || angle > 120) && in_bounds == true){
-        // nudge b.end
-        ofVec2f direction = ofVec2f(ofRandom(-1.0f, 1.0f),ofRandom(-1.0f, 1.0f));
-        ofVec2f end = b.start + (direction * road_scalar);
-        
-        in_bounds = globalBoundsCheck(end);
-        
-        if(in_bounds){
-            angle = getRoadAngle(a.start,a.end,b.end);
-        }
+    return true;
+}
+
+//-----------------------------------------------------------------------------
+// CHECKS
+//-----------------------------------------------------------------------------
+bool ofProceduralCity::globalBoundsCheck(ofVec2f &a){
+    if(a.x >= map_size || a.x <= 0 || a.y >= map_size || a.y <= 0){
+        return false;
     }
     
     return true;
@@ -227,7 +217,6 @@ bool ofProceduralCity::sortByDistance(ofVec2f A, ofVec2f B, ofVec2f pt){
     From Andre LeMothe's "Tricks of the Windows Game Programming Gurus"
     via https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
  */
-
 bool ofProceduralCity::getLineIntersection(ofVec2f p0, ofVec2f p1, ofVec2f p2, ofVec2f p3, ofVec2f &intersection){
     
     float s1_x, s1_y, s2_x, s2_y;
