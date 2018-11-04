@@ -49,7 +49,7 @@ public:
     bool localConstraints(RoadSegment &a);
     vector<RoadSegment> globalGoals(RoadSegment &a);
     bool constrainToIntersections(RoadSegment &a);
-    bool constrainToCityPattern(RoadSegment &prev, RoadSegment &next);
+    bool constrainToCityPattern(RoadSegment &prev, ofVec2f &end);
     
     // checks
     bool globalBoundsCheck(ofVec2f &a);

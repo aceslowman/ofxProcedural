@@ -33,7 +33,7 @@ void ofProceduralCity::setup(){
     ofSetWindowShape(map_size, map_size);
     ofSetWindowPosition((ofGetScreenWidth() / 2.0)-(map_size/2.0), (ofGetScreenHeight() / 2.0)-(map_size/2.0));
     
-    road_scalar = map_size/4.0f;
+    road_scalar = map_size/10.0f;
     
     generateRoads();
     
@@ -118,26 +118,22 @@ vector<RoadSegment> ofProceduralCity::globalGoals(RoadSegment &a){
     }
     
     for(int i = 0; i < max_goals; i++){
-        ofVec2f start = a.end;
-        ofVec2f direction = ofVec2f(ofRandom(-1.0f, 1.0f),ofRandom(-1.0f, 1.0f));
-        ofVec2f end = start + (direction * road_scalar);
-
-        bool in_bounds = globalBoundsCheck(end);
-
-        if(in_bounds){
-            RoadSegment new_road(a.time_delay + 1, start, end);
-
-            bool pattern_check = constrainToCityPattern(a, new_road);
-
-            if(pattern_check){
-                new_road.population = samplePopulation(end);
+            ofVec2f start = a.end;
+            ofVec2f end;
+        
+            //goals alter the end point, reject end point entirely under circumstances
+            bool pattern_check = constrainToCityPattern(a, end);
+            //then constrain to length
+            bool in_bounds = globalBoundsCheck(end);
+        
+            if(pattern_check && in_bounds){
+                RoadSegment new_road(a.time_delay + 1, start, end);
+//                new_road.population = samplePopulation(end);
                 t_priority.push_back(new_road);
             }else{
                 ofLog(OF_LOG_WARNING, "     FAILED PATTERN CHECK");
+                i = 0;
             }
-        }else{
-            ofLog(OF_LOG_WARNING, "     Attempting to sample out of bounds!");
-        }
     }
     
     return t_priority;
@@ -174,11 +170,36 @@ bool ofProceduralCity::constrainToIntersections(RoadSegment &a){
     return true;
 }
 
-bool ofProceduralCity::constrainToCityPattern(RoadSegment &prev, RoadSegment &next){
-    float random_angle = ofRandom(80, 100);
+bool ofProceduralCity::constrainToCityPattern(RoadSegment &prev, ofVec2f &end){
+    /*
+        This is producing right angles, but only ONE right angle, leading to a never ending
+        square.
+     
+        I suppose I could choose between three possible ones, but I dunno, let's rethink it.
+     */
+//    float random_angle = ofRandom(-10, 10);
+//    ofVec2f prev_direction = prev.end - prev.start;
+//    ofVec2f new_direction = prev_direction.getPerpendicular();
+//
+//    new_direction.rotate(random_angle);
+//    end = prev.end + (new_direction * road_scalar);
+    
+    /*
+        Try generating a straight line, and then rotating it along the axis of a.end, and use modulus
+        to constrain to near 90 degree angles.
+     */
+    
+    ofVec2f prev_direction = ofVec2f(prev.end - prev.start).normalize();
+    ofVec2f new_direction = prev_direction;
+    
+    int quadrant = (int)ofRandom(4);
+    float range = 5.0f;
+    float tendency = 90.0f;
 
-//    next.end = ofVec2f(0,0);
-//    next.end.rotate(random_angle,next.start);
+    float random_angle = ofRandom((tendency * quadrant) - range,(tendency * quadrant) + range);
+    new_direction.rotate(random_angle);
+    
+    end = prev.end + (new_direction * road_scalar);
     
     return true;
 }
