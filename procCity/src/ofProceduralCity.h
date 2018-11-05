@@ -27,6 +27,7 @@ public:
     
     vector<RoadSegment> pending_list;
     vector<RoadSegment> placed_list;
+    vector<ofVec2f> crossing_list;
     
     ofImage pop_map;
     float map_size;
@@ -35,7 +36,7 @@ public:
     float road_scalar;
     
     ofMesh mesh;
-    ofMesh intersectionMesh;
+    ofMesh crossingMesh;
     vector<ofVec3f> points;
     
     // setup
@@ -48,7 +49,9 @@ public:
     // constraint
     bool localConstraints(RoadSegment &a);
     vector<RoadSegment> globalGoals(RoadSegment &a);
-    bool constrainToIntersections(RoadSegment &a);
+    bool checkForCrossings(RoadSegment &a);
+    bool checkForNearby(RoadSegment &a);
+    
     bool constrainToCityPattern(RoadSegment &prev, ofVec2f &end);
     
     // checks
@@ -60,12 +63,9 @@ public:
     static bool sortByDistance(ofVec2f A, ofVec2f B, ofVec2f pt);
     bool getLineIntersection(ofVec2f p0, ofVec2f p1, ofVec2f p2, ofVec2f p3, ofVec2f &intersection);
     float getRoadAngle(ofVec2f A, ofVec2f B, ofVec2f C);
+    float getDistanceBetweenPointandLine( ofVec2f a, ofVec2f b, ofVec2f p );
     
     // city rules
-    void BasicRule();
-    void NewYorkRule();
-    void ParisRule();
-    void SanFranRule();
     
     // drawing
     void draw();

@@ -33,7 +33,7 @@ void ofProceduralCity::setup(){
     ofSetWindowShape(map_size, map_size);
     ofSetWindowPosition((ofGetScreenWidth() / 2.0)-(map_size/2.0), (ofGetScreenHeight() / 2.0)-(map_size/2.0));
     
-    road_scalar = map_size/10.0f;
+    road_scalar = map_size/15.0f;
     
     generateRoads();
     
@@ -42,7 +42,7 @@ void ofProceduralCity::setup(){
 
 void ofProceduralCity::setupDebug(){
     mesh.setMode(OF_PRIMITIVE_POINTS);
-    intersectionMesh.setMode(OF_PRIMITIVE_POINTS);
+    crossingMesh.setMode(OF_PRIMITIVE_POINTS);
 
     
     for(auto &r : placed_list){
@@ -51,6 +51,10 @@ void ofProceduralCity::setupDebug(){
         
         r.line.addVertex((ofVec3f)r.start);
         r.line.addVertex((ofVec3f)r.end);
+    }
+    
+    for(auto &i : crossing_list){
+        crossingMesh.addVertex((ofVec3f)i);
     }
 }
 
@@ -96,109 +100,124 @@ void ofProceduralCity::generateRoads(){
 //-----------------------------------------------------------------------------
 
 bool ofProceduralCity::localConstraints(RoadSegment &a){
-    ofLog(OF_LOG_NOTICE, "checking LOCAL CONSTRAINTS at point: ("+ofToString(a.start)+")("+ofToString(a.end)+")");
-    
-    constrainToIntersections(a);
-//    constrainCloseTo(a);
-    
-    return true;
+    bool crossings = checkForCrossings(a);
+    bool nearby = checkForNearby(a);
+
+    if(crossings && nearby){
+        return true;
+    }else{
+        return false;
+    }
 }
 
 vector<RoadSegment> ofProceduralCity::globalGoals(RoadSegment &a){
-    ofLog(OF_LOG_NOTICE, "checking GLOBAL GOALS at point: ("+ofToString(a.start)+")("+ofToString(a.end)+")");
-    
     vector<RoadSegment> t_priority;
     
     int max_goals;
     
-    if(placed_list.size() < road_limit){
-        max_goals = 2;
-    }else{
-        max_goals = 0;
-    }
+    (placed_list.size() < road_limit) ? max_goals = 2 : max_goals = 0;
     
     for(int i = 0; i < max_goals; i++){
-            ofVec2f start = a.end;
-            ofVec2f end;
-        
-            //goals alter the end point, reject end point entirely under circumstances
-            bool pattern_check = constrainToCityPattern(a, end);
-            //then constrain to length
-            bool in_bounds = globalBoundsCheck(end);
-        
-            if(pattern_check && in_bounds){
-                RoadSegment new_road(a.time_delay + 1, start, end);
-//                new_road.population = samplePopulation(end);
-                t_priority.push_back(new_road);
-            }else{
-                ofLog(OF_LOG_WARNING, "     FAILED PATTERN CHECK");
-                i = 0;
-            }
+        ofVec2f start = a.end;
+        ofVec2f direction = ofVec2f(ofRandom(-1,1),ofRandom(-1,1));
+        ofVec2f end = a.end + (direction*road_scalar);
+    
+        bool pattern_check = constrainToCityPattern(a, end);
+//        bool pattern_check = true;
+        bool in_bounds = globalBoundsCheck(end);
+    
+        bool accepted = pattern_check && in_bounds;
+        if(accepted){
+            RoadSegment new_road(a.time_delay + 1, start, end);
+            new_road.population = samplePopulation(end);
+            t_priority.push_back(new_road);
+        }else{
+            ofLog(OF_LOG_WARNING, "     FAILED PATTERN CHECK");
+            i--;
+        }
     }
     
     return t_priority;
 }
 
-bool ofProceduralCity::constrainToIntersections(RoadSegment &a){
+bool ofProceduralCity::checkForCrossings(RoadSegment &a){
+    float tolerance = 10.0f;
     /*
-     Checks for intersection between segments, truncating the initial segment
-     at the intersection point
+        Checks for crossings between segments, truncating the initial segment
+        at the crossing point
      */
-    vector<ofVec2f> intersections;
-    
-    for(auto b : placed_list){ // within this loop, I can do much more than constrain to intersections right?
+    vector<ofVec2f> crossings;
+    for(auto b : placed_list){
         if (a.start == b.start || a.end == b.end || a.start == b.end || a.end == b.start) { continue; }
         
-        ofVec2f intersection = ofVec2f(0,0);
+        ofVec2f crossing;
 
-        bool intersect = getLineIntersection(a.start, a.end, b.start, b.end, intersection);
+        bool intersect = getLineIntersection(a.start, a.end, b.start, b.end, crossing);
+        
         if(intersect){
-            ofLog(OF_LOG_NOTICE, "      Intersection found at: " + ofToString(intersection));
-            intersections.push_back(intersection);
+            ofLog(OF_LOG_NOTICE, "      Crossing found at: " + ofToString(crossing));
+            crossings.push_back(crossing);
         }
     }
     
-    if(intersections.size() > 0){
-        std::sort (intersections.begin(), intersections.end(),
-                   std::bind(sortByDistance, std::placeholders::_1, std::placeholders::_2, a.start));
+    bool intersects = crossings.size() > 0;
+    if(intersects){
+        std::sort(crossings.begin(), crossings.end(), std::bind(sortByDistance, std::placeholders::_1, std::placeholders::_2, a.start));
         
-        a.end = intersections.front();
+        a.end = crossings.front();
         a.population = samplePopulation(a.end);
-        intersectionMesh.addVertex(ofVec3f(a.end.x,a.end.y,0));
+
+        crossing_list.push_back(a.end);
     }
     
     return true;
 }
 
+bool ofProceduralCity::checkForNearby(RoadSegment &a){
+    float tolerance = 10.0f;
+    bool snapped = false;
+
+    for(auto b : placed_list){
+        bool close_to_start = a.end.distance(b.start) < tolerance;
+        bool close_to_end = a.end.distance(b.end) < tolerance;
+        
+        if(close_to_start && close_to_end){
+            return false;
+        }else if(close_to_start){
+            a.end = b.start;
+            snapped = true;
+        }else if(close_to_end){
+            a.end = b.end;
+            snapped = true;
+        }
+    }
+    
+    if(snapped){ // end points have moved, check again for intersections
+        bool cross = checkForCrossings(a);
+        
+        if(!cross){
+            return false;
+        }
+    }
+
+    return true;
+}
+
 bool ofProceduralCity::constrainToCityPattern(RoadSegment &prev, ofVec2f &end){
     /*
-        This is producing right angles, but only ONE right angle, leading to a never ending
-        square.
-     
-        I suppose I could choose between three possible ones, but I dunno, let's rethink it.
+        I am wondering if there are efficiency issues tied to the number of points we are dropping without
+        checking distance from crossings, but for now that will be a local constraint task.
      */
-//    float random_angle = ofRandom(-10, 10);
-//    ofVec2f prev_direction = prev.end - prev.start;
-//    ofVec2f new_direction = prev_direction.getPerpendicular();
-//
-//    new_direction.rotate(random_angle);
-//    end = prev.end + (new_direction * road_scalar);
-    
-    /*
-        Try generating a straight line, and then rotating it along the axis of a.end, and use modulus
-        to constrain to near 90 degree angles.
-     */
-    
     ofVec2f prev_direction = ofVec2f(prev.end - prev.start).normalize();
     ofVec2f new_direction = prev_direction;
-    
+
     int quadrant = (int)ofRandom(4);
     float range = 5.0f;
     float tendency = 90.0f;
 
     float random_angle = ofRandom((tendency * quadrant) - range,(tendency * quadrant) + range);
     new_direction.rotate(random_angle);
-    
+
     end = prev.end + (new_direction * road_scalar);
     
     return true;
@@ -259,7 +278,9 @@ bool ofProceduralCity::getLineIntersection(ofVec2f p0, ofVec2f p1, ofVec2f p2, o
     return false;
 }
 
-/* https://stackoverflow.com/questions/26829161/the-angle-between-3-points-in-c */
+/*
+ https://stackoverflow.com/questions/26829161/the-angle-between-3-points-in-c
+*/
 float ofProceduralCity::getRoadAngle(ofVec2f A, ofVec2f B, ofVec2f C){
     float atanA = atan2(A.x - B.x, A.y - B.y);
     float atanC = atan2(C.x - B.x, C.y - B.y);
@@ -271,6 +292,14 @@ float ofProceduralCity::getRoadAngle(ofVec2f A, ofVec2f B, ofVec2f C){
     diff *= 180 / PI;
 
     return diff;
+}
+
+float ofProceduralCity::getDistanceBetweenPointandLine( ofVec2f a, ofVec2f b, ofVec2f p ){
+    ofVec2f n = b - a;
+    ofVec2f pa = a - p;
+    ofVec2f c = n * (pa.dot(n) / n.dot(n));
+    ofVec2f d = pa - c;
+    return sqrt( d.dot(d) );
 }
 
 //-----------------------------------------------------------------------------
@@ -291,7 +320,7 @@ void ofProceduralCity::draw(){
     mesh.draw();
     glPointSize(5);
     ofSetColor(ofColor(255,0,0));
-    intersectionMesh.draw();
+    crossingMesh.draw();
     ofSetColor(ofColor(255,255,255));
 }
 
