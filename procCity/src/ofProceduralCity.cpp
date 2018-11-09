@@ -8,23 +8,12 @@ RoadSegment::RoadSegment(float _time_delay, ofVec2f _start, ofVec2f _end){
     end        = _end;
 }
 
-float RoadSegment::getSlope(){
-    float slope = (this->end.y - this->start.y) / (this->end.x - this->start.x);
-    ofLog(OF_LOG_NOTICE, "  Slope: " + ofToString(slope));
-    
-    return slope;
-}
-
-float RoadSegment::getRotation(){
-    return this->start.angle(end);
-}
-
 //-----------------------------------------------------------------------------
 // SETUP
 //-----------------------------------------------------------------------------
 
 void ofProceduralCity::setup(){
-    road_limit = 500;
+    road_limit = 1500;
     global_walk = 0;
     pop_map.load("noise512.png");
     
@@ -106,6 +95,7 @@ bool ofProceduralCity::localConstraints(RoadSegment &a){
     if(crossings && nearby){
         return true;
     }else{
+        ofLog(OF_LOG_NOTICE, "Road failed local constraints! Removing from pending.");
         return false;
     }
 }
@@ -113,7 +103,11 @@ bool ofProceduralCity::localConstraints(RoadSegment &a){
 vector<RoadSegment> ofProceduralCity::globalGoals(RoadSegment &a){
     vector<RoadSegment> t_priority;
     
-    int max_goals;
+    int max_goals = 2;
+    
+    /*
+        I now need to work towards removing limits...
+     */
     
     (placed_list.size() < road_limit) ? max_goals = 2 : max_goals = 0;
     
@@ -122,8 +116,10 @@ vector<RoadSegment> ofProceduralCity::globalGoals(RoadSegment &a){
         ofVec2f direction = ofVec2f(ofRandom(-1,1),ofRandom(-1,1));
         ofVec2f end = a.end + (direction*road_scalar);
     
-        bool pattern_check = constrainToCityPattern(a, end);
+        bool pattern_check = constrainToRightAngles(a, end);
 //        bool pattern_check = true;
+        
+        bool pop_check = constrainToPopulation(end);
         bool in_bounds = globalBoundsCheck(end);
     
         bool accepted = pattern_check && in_bounds;
@@ -131,9 +127,6 @@ vector<RoadSegment> ofProceduralCity::globalGoals(RoadSegment &a){
             RoadSegment new_road(a.time_delay + 1, start, end);
             new_road.population = samplePopulation(end);
             t_priority.push_back(new_road);
-        }else{
-            ofLog(OF_LOG_WARNING, "     FAILED PATTERN CHECK");
-            i--;
         }
     }
     
@@ -155,7 +148,6 @@ bool ofProceduralCity::checkForCrossings(RoadSegment &a){
         bool intersect = getLineIntersection(a.start, a.end, b.start, b.end, crossing);
         
         if(intersect){
-            ofLog(OF_LOG_NOTICE, "      Crossing found at: " + ofToString(crossing));
             crossings.push_back(crossing);
         }
     }
@@ -203,17 +195,19 @@ bool ofProceduralCity::checkForNearby(RoadSegment &a){
     return true;
 }
 
-bool ofProceduralCity::constrainToCityPattern(RoadSegment &prev, ofVec2f &end){
+bool ofProceduralCity::constrainToRightAngles(RoadSegment &prev, ofVec2f &end){
     /*
         I am wondering if there are efficiency issues tied to the number of points we are dropping without
         checking distance from crossings, but for now that will be a local constraint task.
-     */
+    */
+    
+    /* TODO: two roads should not be generated in the same quadrant. */
     ofVec2f prev_direction = ofVec2f(prev.end - prev.start).normalize();
     ofVec2f new_direction = prev_direction;
 
     int quadrant = (int)ofRandom(4);
     float range = 5.0f;
-    float tendency = 90.0f;
+    float tendency = 90.0f; // 45 degree angle results in spiral!
 
     float random_angle = ofRandom((tendency * quadrant) - range,(tendency * quadrant) + range);
     new_direction.rotate(random_angle);
@@ -223,9 +217,20 @@ bool ofProceduralCity::constrainToCityPattern(RoadSegment &prev, ofVec2f &end){
     return true;
 }
 
+bool ofProceduralCity::constrainToPopulation(ofVec2f &end){
+    // skew the end towards area of highest population
+    
+    // generate 3 rays within a given angle range
+    // along each of the 3 rays, sample the population map at 5 points and sum
+    // chose the ray with the greatest sum
+    
+    return true;
+}
+
 //-----------------------------------------------------------------------------
 // CHECKS
 //-----------------------------------------------------------------------------
+
 bool ofProceduralCity::globalBoundsCheck(ofVec2f &a){
     if(a.x >= map_size || a.x <= 0 || a.y >= map_size || a.y <= 0){
         return false;
@@ -245,19 +250,11 @@ int ofProceduralCity::samplePopulation(ofVec2f s){
     return pix.getColor(s.x,s.y).r;
 }
 
-bool ofProceduralCity::sortByDelay(RoadSegment A, RoadSegment B){
-    return (A.time_delay < B.time_delay);
-}
-
-bool ofProceduralCity::sortByDistance(ofVec2f A, ofVec2f B, ofVec2f pt){
-    return (pt.distance(A) < pt.distance(B));
-}
-
-/*
-    From Andre LeMothe's "Tricks of the Windows Game Programming Gurus"
-    via https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
- */
 bool ofProceduralCity::getLineIntersection(ofVec2f p0, ofVec2f p1, ofVec2f p2, ofVec2f p3, ofVec2f &intersection){
+    /*
+        From Andre LeMothe's "Tricks of the Windows Game Programming Gurus"
+        via https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
+    */
     
     float s1_x, s1_y, s2_x, s2_y;
     s1_x = p1.x - p0.x;
@@ -278,28 +275,20 @@ bool ofProceduralCity::getLineIntersection(ofVec2f p0, ofVec2f p1, ofVec2f p2, o
     return false;
 }
 
-/*
- https://stackoverflow.com/questions/26829161/the-angle-between-3-points-in-c
-*/
-float ofProceduralCity::getRoadAngle(ofVec2f A, ofVec2f B, ofVec2f C){
-    float atanA = atan2(A.x - B.x, A.y - B.y);
-    float atanC = atan2(C.x - B.x, C.y - B.y);
-    float diff = atanC - atanA;
-
-    if (diff > PI) diff -= PI;
-    else if (diff < -PI) diff += PI;
-
-    diff *= 180 / PI;
-
-    return diff;
-}
-
 float ofProceduralCity::getDistanceBetweenPointandLine( ofVec2f a, ofVec2f b, ofVec2f p ){
     ofVec2f n = b - a;
     ofVec2f pa = a - p;
     ofVec2f c = n * (pa.dot(n) / n.dot(n));
     ofVec2f d = pa - c;
     return sqrt( d.dot(d) );
+}
+
+bool ofProceduralCity::sortByDelay(RoadSegment A, RoadSegment B){
+    return (A.time_delay < B.time_delay);
+}
+
+bool ofProceduralCity::sortByDistance(ofVec2f A, ofVec2f B, ofVec2f pt){
+    return (pt.distance(A) < pt.distance(B));
 }
 
 //-----------------------------------------------------------------------------
@@ -311,22 +300,19 @@ void ofProceduralCity::draw(){
     for(auto r : placed_list){
         if(r.time_delay < global_walk){
             r.line.draw();
-//            ofDrawArrow((ofVec3f)r.start,(ofVec3f)r.end,5.0);
         }
     }
+}
 
-    glPointSize(9);
+void ofProceduralCity::drawDebug(){
+    glPointSize(5);
     ofSetColor(ofColor(0,255,0));
     mesh.draw();
-    glPointSize(5);
+    glPointSize(2);
     ofSetColor(ofColor(255,0,0));
     crossingMesh.draw();
     ofSetColor(ofColor(255,255,255));
-}
-
-void ofProceduralCity::printDebug(){
-    ofDrawBitmapString("Priority List: " + ofToString(pending_list.size()), 10, 15);
-    ofDrawBitmapString("Segment List: " + ofToString(placed_list.size()), 10, 30);
-    ofDrawBitmapString("Total Nodes: " + ofToString(mesh.getVertices().size()), 10, 45);
-    ofDrawBitmapString("Global Walk: " + ofToString(global_walk), 10, 75);
+    
+    ofDrawBitmapString("Total Nodes: " + ofToString(mesh.getVertices().size()), 10, 10);
+    ofDrawBitmapString("Global Walk: " + ofToString(global_walk), 10, 25);
 }

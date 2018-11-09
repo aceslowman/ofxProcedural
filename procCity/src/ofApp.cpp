@@ -14,14 +14,11 @@ void ofApp::setup(){
     cam.setVFlip(true);
     
     city.setup();
-    
-//    cam.setGlobalPosition(city.map_size/2,city.map_size/2,0);
-//    cam.setGlobalPosition(<#float px#>, <#float py#>, <#float pz#>)
 }
 
 //--------------------------------------------------------------
 void ofApp::update(){
-    
+    cam.setGlobalPosition(city.map_size/2,city.map_size/2,0);
 }
 
 //--------------------------------------------------------------
@@ -36,9 +33,12 @@ void ofApp::draw(){
     }
     
     city.draw();
-    cam.end();
     
-    city.printDebug();
+    if(debug){
+        city.drawDebug();
+    }
+    
+    cam.end();
 }
 
 //--------------------------------------------------------------

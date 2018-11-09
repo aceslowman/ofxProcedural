@@ -12,9 +12,6 @@ public:
     
     ofPolyline line;
     
-    float getSlope();
-    float getRotation();
-    
     RoadSegment(float _ti, ofVec2f _start, ofVec2f _end);
 };
 
@@ -23,7 +20,6 @@ class ofProceduralCity {
 public:
 
     int global_walk;
-    int global_counter;
     
     vector<RoadSegment> pending_list;
     vector<RoadSegment> placed_list;
@@ -52,22 +48,23 @@ public:
     bool checkForCrossings(RoadSegment &a);
     bool checkForNearby(RoadSegment &a);
     
-    bool constrainToCityPattern(RoadSegment &prev, ofVec2f &end);
+
+    bool constrainToPopulation(ofVec2f &end);
     
     // checks
     bool globalBoundsCheck(ofVec2f &a);
     
     // utility
     int samplePopulation(ofVec2f s);
+    bool getLineIntersection(ofVec2f p0, ofVec2f p1, ofVec2f p2, ofVec2f p3, ofVec2f &intersection);
+    float getDistanceBetweenPointandLine( ofVec2f a, ofVec2f b, ofVec2f p );
     static bool sortByDelay(RoadSegment A, RoadSegment B);
     static bool sortByDistance(ofVec2f A, ofVec2f B, ofVec2f pt);
-    bool getLineIntersection(ofVec2f p0, ofVec2f p1, ofVec2f p2, ofVec2f p3, ofVec2f &intersection);
-    float getRoadAngle(ofVec2f A, ofVec2f B, ofVec2f C);
-    float getDistanceBetweenPointandLine( ofVec2f a, ofVec2f b, ofVec2f p );
     
     // city rules
+    bool constrainToRightAngles(RoadSegment &prev, ofVec2f &end);
     
     // drawing
     void draw();
-    void printDebug();
+    void drawDebug();
 };
