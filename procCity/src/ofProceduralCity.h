@@ -36,6 +36,7 @@ public:
     vector<ofVec3f> points;
     
     // setup
+    void reset();
     void setup();
     void setupDebug();
     
@@ -49,7 +50,7 @@ public:
     bool checkForNearby(RoadSegment &a);
     
 
-    bool constrainToPopulation(ofVec2f &end);
+    
     
     // checks
     bool globalBoundsCheck(ofVec2f &a);
@@ -63,6 +64,7 @@ public:
     
     // city rules
     bool constrainToRightAngles(RoadSegment &prev, ofVec2f &end);
+    bool constrainToPopulation(RoadSegment &prev, ofVec2f &end);
     
     // drawing
     void draw();

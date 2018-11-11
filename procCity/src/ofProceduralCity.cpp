@@ -12,8 +12,21 @@ RoadSegment::RoadSegment(float _time_delay, ofVec2f _start, ofVec2f _end){
 // SETUP
 //-----------------------------------------------------------------------------
 
+void ofProceduralCity::reset(){
+    //clear
+    pending_list.clear();
+    placed_list.clear();
+    crossing_list.clear();
+    points.clear();
+    
+    mesh.clear();
+    crossingMesh.clear();
+
+    setup();
+}
+
 void ofProceduralCity::setup(){
-    road_limit = 1500;
+    road_limit = 5000;
     global_walk = 0;
     pop_map.load("noise512.png");
     
@@ -22,7 +35,7 @@ void ofProceduralCity::setup(){
     ofSetWindowShape(map_size, map_size);
     ofSetWindowPosition((ofGetScreenWidth() / 2.0)-(map_size/2.0), (ofGetScreenHeight() / 2.0)-(map_size/2.0));
     
-    road_scalar = map_size/15.0f;
+    road_scalar = map_size/20.0f;
     
     generateRoads();
     
@@ -32,7 +45,6 @@ void ofProceduralCity::setup(){
 void ofProceduralCity::setupDebug(){
     mesh.setMode(OF_PRIMITIVE_POINTS);
     crossingMesh.setMode(OF_PRIMITIVE_POINTS);
-
     
     for(auto &r : placed_list){
         mesh.addVertex((ofVec3f)r.end);
@@ -106,7 +118,8 @@ vector<RoadSegment> ofProceduralCity::globalGoals(RoadSegment &a){
     int max_goals = 2;
     
     /*
-        I now need to work towards removing limits...
+            TODO: I now need to work towards removing limits...
+            It currently never stops. Roads are continually placed without end.
      */
     
     (placed_list.size() < road_limit) ? max_goals = 2 : max_goals = 0;
@@ -116,13 +129,13 @@ vector<RoadSegment> ofProceduralCity::globalGoals(RoadSegment &a){
         ofVec2f direction = ofVec2f(ofRandom(-1,1),ofRandom(-1,1));
         ofVec2f end = a.end + (direction*road_scalar);
     
-        bool pattern_check = constrainToRightAngles(a, end);
+//        bool pattern_check = constrainToRightAngles(a, end);
 //        bool pattern_check = true;
         
-        bool pop_check = constrainToPopulation(end);
+        bool pop_check = constrainToPopulation(a, end);
         bool in_bounds = globalBoundsCheck(end);
     
-        bool accepted = pattern_check && in_bounds;
+        bool accepted = pop_check && in_bounds;
         if(accepted){
             RoadSegment new_road(a.time_delay + 1, start, end);
             new_road.population = samplePopulation(end);
@@ -217,12 +230,42 @@ bool ofProceduralCity::constrainToRightAngles(RoadSegment &prev, ofVec2f &end){
     return true;
 }
 
-bool ofProceduralCity::constrainToPopulation(ofVec2f &end){
-    // skew the end towards area of highest population
+bool ofProceduralCity::constrainToPopulation(RoadSegment &prev, ofVec2f &end){
+    float range = 30; // paramaterize!!!
+    int numRays = 3;
+    int numSample = 3;
     
-    // generate 3 rays within a given angle range
-    // along each of the 3 rays, sample the population map at 5 points and sum
-    // chose the ray with the greatest sum
+    ofPolyline t_ray;
+    float t_sum = 0;
+    
+    for(int i = 0; i < numRays; i++){
+        ofPolyline ray;
+        float sum = 0;
+        
+        ray.addVertex((ofVec3f)prev.start);
+        
+        ofVec2f direction = ofVec2f(prev.end - prev.start).normalize();
+        
+        float random_angle = ofRandom(-range,range);
+        direction.rotate(random_angle);
+        
+        ofVec2f t_end = prev.end + (direction * road_scalar);
+        
+        ray.addVertex((ofVec3f)t_end);
+        
+        // at three points along the ray, sample the population map and add to the sum
+        for(int j = 0; j < numSample; j++){
+            ofVec2f p = (ofVec2f)ray.getPointAtIndexInterpolated((1.0f/3)*j);
+            sum += samplePopulation(p);
+        }
+        
+        if(sum > t_sum){
+            t_sum = sum;
+            t_ray = ray;
+        }
+    }
+    
+    end = (ofVec2f)t_ray.getPointAtIndexInterpolated(1);
     
     return true;
 }
@@ -233,6 +276,7 @@ bool ofProceduralCity::constrainToPopulation(ofVec2f &end){
 
 bool ofProceduralCity::globalBoundsCheck(ofVec2f &a){
     if(a.x >= map_size || a.x <= 0 || a.y >= map_size || a.y <= 0){
+        ofLog(OF_LOG_ERROR, "OUT OF BOUNDS");
         return false;
     }
     
@@ -245,7 +289,6 @@ bool ofProceduralCity::globalBoundsCheck(ofVec2f &a){
 
 int ofProceduralCity::samplePopulation(ofVec2f s){
     ofPixels &pix = pop_map.getPixels();
-    ofColor color = ofColor(0);
     
     return pix.getColor(s.x,s.y).r;
 }

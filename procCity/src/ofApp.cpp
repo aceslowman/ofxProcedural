@@ -14,11 +14,13 @@ void ofApp::setup(){
     cam.setVFlip(true);
     
     city.setup();
+    
+    cam.setGlobalPosition(city.map_size/2,city.map_size/2,0);
 }
 
 //--------------------------------------------------------------
 void ofApp::update(){
-    cam.setGlobalPosition(city.map_size/2,city.map_size/2,0);
+
 }
 
 //--------------------------------------------------------------
@@ -51,6 +53,9 @@ void ofApp::keyPressed(int key){
     }
     if(key == '='){
         city.global_walk++;
+    }
+    if(key == 'b'){
+        city.reset();
     }
 }
 
