@@ -17,7 +17,8 @@ void ofProceduralCity::reset(){
     pending_list.clear();
     placed_list.clear();
     crossing_list.clear();
-    points.clear();
+    
+    pop_map.clear();
     
     mesh.clear();
     crossingMesh.clear();
@@ -28,10 +29,9 @@ void ofProceduralCity::reset(){
 void ofProceduralCity::setup(){
     road_limit = 5000;
     global_walk = 0;
-    pop_map.load("noise512.png");
+    map_size = 512;
+    generatePopulationMap();
     
-    // set up maps
-    map_size = pop_map.getWidth();
     ofSetWindowShape(map_size, map_size);
     ofSetWindowPosition((ofGetScreenWidth() / 2.0)-(map_size/2.0), (ofGetScreenHeight() / 2.0)-(map_size/2.0));
     
@@ -48,7 +48,6 @@ void ofProceduralCity::setupDebug(){
     
     for(auto &r : placed_list){
         mesh.addVertex((ofVec3f)r.end);
-//        mesh.addColor(ofColor(r.population));
         
         r.line.addVertex((ofVec3f)r.start);
         r.line.addVertex((ofVec3f)r.end);
@@ -96,6 +95,25 @@ void ofProceduralCity::generateRoads(){
     }
 }
 
+void ofProceduralCity::generatePopulationMap(){
+    ofPixels t_pop;
+    t_pop.allocate(map_size, map_size, OF_IMAGE_GRAYSCALE);
+    pop_map.allocate(map_size, map_size, OF_IMAGE_GRAYSCALE);
+    
+    ofSeedRandom();
+    
+    float scale = 500;
+    float offset = ofRandom(100);
+    
+    for(int i = 0; i < map_size; i++){
+        for(int j = 0; j < map_size; j++){
+            t_pop.setColor(i, j, ofColor(ofNoise(i/scale + offset, j/scale + offset)*255));
+        }
+    }
+    
+    pop_map.setFromPixels(t_pop);
+}
+
 //-----------------------------------------------------------------------------
 // CONSTRAINT
 //-----------------------------------------------------------------------------
@@ -138,7 +156,6 @@ vector<RoadSegment> ofProceduralCity::globalGoals(RoadSegment &a){
         bool accepted = pop_check && in_bounds;
         if(accepted){
             RoadSegment new_road(a.time_delay + 1, start, end);
-            new_road.population = samplePopulation(end);
             t_priority.push_back(new_road);
         }
     }
@@ -170,7 +187,6 @@ bool ofProceduralCity::checkForCrossings(RoadSegment &a){
         std::sort(crossings.begin(), crossings.end(), std::bind(sortByDistance, std::placeholders::_1, std::placeholders::_2, a.start));
         
         a.end = crossings.front();
-        a.population = samplePopulation(a.end);
 
         crossing_list.push_back(a.end);
     }
@@ -204,6 +220,11 @@ bool ofProceduralCity::checkForNearby(RoadSegment &a){
             return false;
         }
     }
+    
+    /*
+        This still needs a check for nearby, but uncomplete connections. not only do I have
+        to do a crossing check, but I need to merge with nearby roads if within range
+     */
 
     return true;
 }
@@ -231,7 +252,7 @@ bool ofProceduralCity::constrainToRightAngles(RoadSegment &prev, ofVec2f &end){
 }
 
 bool ofProceduralCity::constrainToPopulation(RoadSegment &prev, ofVec2f &end){
-    float range = 30; // paramaterize!!!
+    float range = 90; // paramaterize!!!
     int numRays = 3;
     int numSample = 3;
     
@@ -338,24 +359,28 @@ bool ofProceduralCity::sortByDistance(ofVec2f A, ofVec2f B, ofVec2f pt){
 // DRAWING
 //-----------------------------------------------------------------------------
 
-void ofProceduralCity::draw(){
+void ofProceduralCity::draw(bool debug){
+    if(debug){
+        pop_map.draw(0,0,map_size,map_size);
+    }
+    
     ofSetColor(ofColor(255,255,255));
     for(auto r : placed_list){
         if(r.time_delay < global_walk){
             r.line.draw();
         }
     }
-}
-
-void ofProceduralCity::drawDebug(){
-    glPointSize(5);
-    ofSetColor(ofColor(0,255,0));
-    mesh.draw();
-    glPointSize(2);
-    ofSetColor(ofColor(255,0,0));
-    crossingMesh.draw();
-    ofSetColor(ofColor(255,255,255));
     
-    ofDrawBitmapString("Total Nodes: " + ofToString(mesh.getVertices().size()), 10, 10);
-    ofDrawBitmapString("Global Walk: " + ofToString(global_walk), 10, 25);
+    if(debug){
+        glPointSize(5);
+        ofSetColor(ofColor(0,255,0));
+        mesh.draw();
+        glPointSize(2);
+        ofSetColor(ofColor(255,0,0));
+        crossingMesh.draw();
+        ofSetColor(ofColor(255,255,255));
+        
+        ofDrawBitmapString("Total Nodes: " + ofToString(mesh.getVertices().size()), 10, 10);
+        ofDrawBitmapString("Global Walk: " + ofToString(global_walk), 10, 25);
+    }
 }

@@ -14,8 +14,6 @@ void ofApp::setup(){
     cam.setVFlip(true);
     
     city.setup();
-    
-    cam.setGlobalPosition(city.map_size/2,city.map_size/2,0);
 }
 
 //--------------------------------------------------------------
@@ -29,15 +27,10 @@ void ofApp::draw(){
 
     cam.begin();
     
+    city.draw(debug);
+
     if(debug){
-        city.pop_map.draw(0,0,city.map_size,city.map_size);
         ofDrawGrid(city.map_size/10.0f, 10, false, false, false, true);
-    }
-    
-    city.draw();
-    
-    if(debug){
-        city.drawDebug();
     }
     
     cam.end();
@@ -55,6 +48,7 @@ void ofApp::keyPressed(int key){
         city.global_walk++;
     }
     if(key == 'b'){
+        cam.setGlobalPosition(city.map_size/2,city.map_size/2,0);
         city.reset();
     }
 }
