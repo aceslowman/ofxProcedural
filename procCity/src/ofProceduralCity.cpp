@@ -35,9 +35,10 @@ void ofProceduralCity::setup(){
     ofSetWindowShape(map_size, map_size);
     ofSetWindowPosition((ofGetScreenWidth() / 2.0)-(map_size/2.0), (ofGetScreenHeight() / 2.0)-(map_size/2.0));
     
-    road_scalar = map_size/20.0f;
+    road_scalar = map_size/10.0f;
     
     generateRoads();
+    divideIntoLots();
     
     setupDebug();
 }
@@ -87,6 +88,7 @@ void ofProceduralCity::generateRoads(){
             placed_list.push_back(r);
 
             for(auto i : globalGoals(r)){
+                //add each to the sibling vector belonging to the previous road
                 pending_list.push_back(i);
             }
         }
@@ -112,6 +114,16 @@ void ofProceduralCity::generatePopulationMap(){
     }
     
     pop_map.setFromPixels(t_pop);
+}
+
+void ofProceduralCity::divideIntoLots(){
+    //for each block
+    //treat it's points as one polygon
+    //in which you will subdivide it's longest edges
+    //until the individual blocks
+    //have an area below a certain threshold
+    
+    
 }
 
 //-----------------------------------------------------------------------------
@@ -378,6 +390,8 @@ void ofProceduralCity::draw(bool debug){
         glPointSize(2);
         ofSetColor(ofColor(255,0,0));
         crossingMesh.draw();
+        ofSetColor(ofColor(0,0,255));
+        buildingMesh.draw();
         ofSetColor(ofColor(255,255,255));
         
         ofDrawBitmapString("Total Nodes: " + ofToString(mesh.getVertices().size()), 10, 10);

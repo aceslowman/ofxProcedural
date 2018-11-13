@@ -3,7 +3,8 @@
 #include "ofMain.h"
 
 struct RoadSegment {
-    ofVec2f start, end;
+    ofVec2f start, end; // will only need a single point (end)
+    vector<shared_ptr<RoadSegment>> siblings;
     
     float time_delay;
     
@@ -20,6 +21,7 @@ private:
     vector<RoadSegment> pending_list;
     vector<RoadSegment> placed_list;
     vector<ofVec2f> crossing_list;
+    vector<ofVec2f> building_list;
     
     ofImage pop_map;
 
@@ -28,12 +30,14 @@ private:
 
     ofMesh mesh;
     ofMesh crossingMesh;
+    ofMesh buildingMesh;
 
     void setupDebug();
     
     // generation
     void generateRoads();
     void generatePopulationMap();
+    void divideIntoLots();
     
     // constraint
     bool localConstraints(RoadSegment &a);
