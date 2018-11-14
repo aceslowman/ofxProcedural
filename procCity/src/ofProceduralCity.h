@@ -59,8 +59,8 @@ private:
     static bool sortByDistance(ofVec2f A, ofVec2f B, ofVec2f pt);
     
     // city rules
-    bool constrainToRightAngles(Road &prev, ofVec2f &end);
-    bool constrainToPopulation(Road &prev, ofVec2f &end);
+    bool constrainToRightAngles(shared_ptr<Road> prev, ofVec2f &end);
+    bool constrainToPopulation(shared_ptr<Road> prev, ofVec2f &end);
     
 public:
     int map_size;

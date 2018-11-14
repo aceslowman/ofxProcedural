@@ -73,7 +73,10 @@ void ofProceduralCity::generateRoads(){
         std::sort (pending_list.begin(), pending_list.end(), sortByDelay);
         shared_ptr<Road> r = pending_list.front();
         
-        bool accepted = localConstraints(r);
+        bool accepted = true;
+        if(r->prev != nullptr){
+            accepted = localConstraints(r);
+        }
         
         if(accepted){
             placed_list.push_back(r);
@@ -83,6 +86,9 @@ void ofProceduralCity::generateRoads(){
                 r->siblings.push_back(i);
                 pending_list.push_back(i);
             }
+        }else{
+            ofLog(OF_LOG_NOTICE, "Road failed local constraints! Removing from pending.");
+            pending_list.erase(pending_list.begin());
         }
     }
 }
@@ -112,27 +118,93 @@ void ofProceduralCity::divideIntoLots(){
     //in which you will subdivide it's longest edges
     //until the individual blocks
     //have an area below a certain threshold
-    
-    
 }
 
 //-----------------------------------------------------------------------------
-// CONSTRAINT
+// LOCAL CONSTRAINTS
 //-----------------------------------------------------------------------------
 
 bool ofProceduralCity::localConstraints(shared_ptr<Road> a){
-    if(a->prev == nullptr){return true;} //continue if previous is null (first node)
-    
     bool crossings = checkForCrossings(a);
     bool nearby = checkForNearby(a);
 
     if(crossings && nearby){
         return true;
     }else{
-        ofLog(OF_LOG_NOTICE, "Road failed local constraints! Removing from pending.");
         return false;
     }
 }
+
+bool ofProceduralCity::checkForCrossings(shared_ptr<Road> a){
+    float tolerance = 10.0f;
+
+    vector<ofVec2f> crossings;
+    for(auto b : placed_list){
+        if (b->prev == nullptr) { continue; }
+        if (a->prev->node == b->prev->node || a->node == b->node || a->prev->node == b->node || a->node == b->prev->node) { continue; } //can probably do some pointer comparison here
+
+        ofVec2f crossing;
+
+        bool intersect = getLineIntersection(a->prev->node, a->node, b->prev->node, b->node, crossing);
+
+        if(intersect){
+            crossings.push_back(crossing);
+        }
+    }
+
+    bool intersects = crossings.size() > 0;
+    if(intersects){
+        std::sort(crossings.begin(), crossings.end(), std::bind(sortByDistance, std::placeholders::_1, std::placeholders::_2, a->prev->node));
+
+        a->node = crossings.front();
+
+        crossing_list.push_back(a->node);
+    }
+    
+    return true;
+}
+
+bool ofProceduralCity::checkForNearby(shared_ptr<Road> a){
+    float tolerance = 10.0f; // parameterize
+    bool snapped = false;
+
+    for(auto b : placed_list){
+        if(b->prev == nullptr){ continue; }
+        bool close_to_start = a->node.distance(b->prev->node) < tolerance;
+        bool close_to_end = a->node.distance(b->node) < tolerance;
+
+        if(close_to_start && close_to_end){
+            ofLog(OF_LOG_NOTICE, "discarding by proximity to crossing");
+            return false;
+        }else if(close_to_start){
+            a->node = b->prev->node;
+            snapped = true;
+        }else if(close_to_end){
+            a->node = b->node;
+            snapped = true;
+        }
+    }
+
+    if(snapped){ // end points have moved, check again for intersections
+        bool cross = checkForCrossings(a);
+
+        if(!cross){
+            ofLog(OF_LOG_NOTICE, "checkForCrossings failed");
+            return false;
+        }
+    }
+
+    /*
+        This still needs a check for nearby, but uncomplete connections. not only do I have
+        to do a crossing check, but I need to merge with nearby roads if within range
+     */
+
+    return true;
+}
+
+//-----------------------------------------------------------------------------
+// GLOBAL GOALS
+//-----------------------------------------------------------------------------
 
 vector<shared_ptr<Road>> ofProceduralCity::globalGoals(shared_ptr<Road> a){
     vector<shared_ptr<Road>> t_priority;
@@ -144,15 +216,17 @@ vector<shared_ptr<Road>> ofProceduralCity::globalGoals(shared_ptr<Road> a){
     for(int i = 0; i < max_goals; i++){
         ofVec2f direction = ofVec2f(ofRandom(-1,1),ofRandom(-1,1));
         ofVec2f next_node = a->node + (direction * road_scalar);
-    
-//        bool pattern_check = constrainToRightAngles(a, end);
-//        bool pattern_check = true;
         
-//        bool pop_check = constrainToPopulation(a, end);
-//        bool in_bounds = globalBoundsCheck(end);
-    
-//        bool accepted = pop_check && in_bounds;
         bool accepted = true;
+        if(a->prev != nullptr){
+            bool pattern_check = constrainToRightAngles(a, next_node);
+            bool pop_check = constrainToPopulation(a, next_node);
+            bool in_bounds = globalBoundsCheck(next_node);
+
+            accepted = pop_check && in_bounds;
+//            accepted = pop_check;
+        }
+        
         if(accepted){
             shared_ptr<Road> new_road = make_shared<Road>(a->time_delay + 1, a, next_node);
             t_priority.push_back(new_road);
@@ -162,131 +236,70 @@ vector<shared_ptr<Road>> ofProceduralCity::globalGoals(shared_ptr<Road> a){
     return t_priority;
 }
 
-bool ofProceduralCity::checkForCrossings(shared_ptr<Road> a){
-    float tolerance = 10.0f;
-    /*
-        Checks for crossings between segments, truncating the initial segment
-        at the crossing point
-     */
-//    vector<ofVec2f> crossings;
-//    for(auto b : placed_list){
-//        if (a.start == b.start || a.end == b.end || a.start == b.end || a.end == b.start) { continue; }
-//
-//        ofVec2f crossing;
-//
-//        bool intersect = getLineIntersection(a.start, a.end, b.start, b.end, crossing);
-//
-//        if(intersect){
-//            crossings.push_back(crossing);
-//        }
-//    }
-//
-//    bool intersects = crossings.size() > 0;
-//    if(intersects){
-//        std::sort(crossings.begin(), crossings.end(), std::bind(sortByDistance, std::placeholders::_1, std::placeholders::_2, a.start));
-//
-//        a.end = crossings.front();
-//
-//        crossing_list.push_back(a.end);
-//    }
-    
-    return true;
-}
-
-bool ofProceduralCity::checkForNearby(shared_ptr<Road> a){
-//    float tolerance = 10.0f;
-//    bool snapped = false;
-//
-//    for(auto b : placed_list){
-//        bool close_to_start = a.end.distance(b.start) < tolerance;
-//        bool close_to_end = a.end.distance(b.end) < tolerance;
-//
-//        if(close_to_start && close_to_end){
-//            return false;
-//        }else if(close_to_start){
-//            a.end = b.start;
-//            snapped = true;
-//        }else if(close_to_end){
-//            a.end = b.end;
-//            snapped = true;
-//        }
-//    }
-//
-//    if(snapped){ // end points have moved, check again for intersections
-//        bool cross = checkForCrossings(a);
-//
-//        if(!cross){
-//            return false;
-//        }
-//    }
-//
-//    /*
-//        This still needs a check for nearby, but uncomplete connections. not only do I have
-//        to do a crossing check, but I need to merge with nearby roads if within range
-//     */
-
-    return true;
-}
-
-bool ofProceduralCity::constrainToRightAngles(Road &prev, ofVec2f &end){
+bool ofProceduralCity::constrainToRightAngles(shared_ptr<Road> prev, ofVec2f &end){
+    if(prev->prev == nullptr){ return true; }
     /*
         I am wondering if there are efficiency issues tied to the number of points we are dropping without
         checking distance from crossings, but for now that will be a local constraint task.
     */
     
     /* TODO: two roads should not be generated in the same quadrant. */
-//    ofVec2f prev_direction = ofVec2f(prev.end - prev.start).normalize();
-//    ofVec2f new_direction = prev_direction;
-//
-//    int quadrant = (int)ofRandom(4);
-//    float range = 5.0f;
-//    float tendency = 90.0f; // 45 degree angle results in spiral!
-//
-//    float random_angle = ofRandom((tendency * quadrant) - range,(tendency * quadrant) + range);
-//    new_direction.rotate(random_angle);
-//
-//    end = prev.end + (new_direction * road_scalar);
-//
-//    return true;
+
+    ofVec2f prev_direction = ofVec2f(prev->node - prev->prev->node).normalize();
+    ofVec2f new_direction = prev_direction;
+    
+    int quadrant = (int)ofRandom(4);
+    float range = 5.0f;
+    float tendency = 90.0f; // 45 degree angle results in spiral!
+    
+    float random_angle = ofRandom((tendency * quadrant) - range,(tendency * quadrant) + range);
+    new_direction.rotate(random_angle);
+    
+    //end is only used if accepted. so maybe I should return to the old use of (prev, end)
+    end = prev->node + (new_direction * road_scalar);
+
+    return true;
 }
 
-bool ofProceduralCity::constrainToPopulation(Road &prev, ofVec2f &end){
-//    float range = 90; // paramaterize!!!
-//    int numRays = 3;
-//    int numSample = 3;
-//
-//    ofPolyline t_ray;
-//    float t_sum = 0;
-//
-//    for(int i = 0; i < numRays; i++){
-//        ofPolyline ray;
-//        float sum = 0;
-//
-//        ray.addVertex((ofVec3f)prev.start);
-//
-//        ofVec2f direction = ofVec2f(prev.end - prev.start).normalize();
-//
-//        float random_angle = ofRandom(-range,range);
-//        direction.rotate(random_angle);
-//
-//        ofVec2f t_end = prev.end + (direction * road_scalar);
-//
-//        ray.addVertex((ofVec3f)t_end);
-//
-//        // at three points along the ray, sample the population map and add to the sum
-//        for(int j = 0; j < numSample; j++){
-//            ofVec2f p = (ofVec2f)ray.getPointAtIndexInterpolated((1.0f/3)*j);
-//            sum += samplePopulation(p);
-//        }
-//
-//        if(sum > t_sum){
-//            t_sum = sum;
-//            t_ray = ray;
-//        }
-//    }
-//
-//    end = (ofVec2f)t_ray.getPointAtIndexInterpolated(1);
-//
+bool ofProceduralCity::constrainToPopulation(shared_ptr<Road> prev, ofVec2f &end){
+    if(prev->prev == nullptr){ return true; }
+    
+    float range = 90; // paramaterize!!!
+    int numRays = 3;
+    int numSample = 3;
+
+    ofPolyline t_ray;
+    float t_sum = 0;
+
+    for(int i = 0; i < numRays; i++){
+        ofPolyline ray;
+        float sum = 0;
+
+        ray.addVertex((ofVec3f)prev->prev->node);
+
+        ofVec2f direction = ofVec2f(prev->node - prev->prev->node).normalize();
+
+        float random_angle = ofRandom(-range,range);
+        direction.rotate(random_angle);
+
+        ofVec2f t_end = prev->node + (direction * road_scalar);
+
+        ray.addVertex((ofVec3f)t_end);
+
+        // at three points along the ray, sample the population map and add to the sum
+        for(int j = 0; j < numSample; j++){
+            ofVec2f p = (ofVec2f)ray.getPointAtIndexInterpolated((1.0f/3)*j);
+            sum += samplePopulation(p);
+        }
+
+        if(sum > t_sum){
+            t_sum = sum;
+            t_ray = ray;
+        }
+    }
+
+    end = (ofVec2f)t_ray.getPointAtIndexInterpolated(1);
+
     return true;
 }
 
