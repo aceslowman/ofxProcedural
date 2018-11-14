@@ -211,7 +211,7 @@ vector<shared_ptr<Road>> ofProceduralCity::globalGoals(shared_ptr<Road> a){
     
     int max_goals = 2;
     
-    (placed_list.size() < road_limit) ? max_goals = 2 : max_goals = 0;
+//    (placed_list.size() < road_limit) ? max_goals = 2 : max_goals = 0;
     
     for(int i = 0; i < max_goals; i++){
         ofVec2f direction = ofVec2f(ofRandom(-1,1),ofRandom(-1,1));
@@ -224,7 +224,6 @@ vector<shared_ptr<Road>> ofProceduralCity::globalGoals(shared_ptr<Road> a){
             bool in_bounds = globalBoundsCheck(next_node);
 
             accepted = pop_check && in_bounds;
-//            accepted = pop_check;
         }
         
         if(accepted){
