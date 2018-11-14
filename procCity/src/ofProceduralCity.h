@@ -7,6 +7,8 @@ struct Road {
     ofVec2f node;
     
     float time_delay;
+    
+    ofPolyline line;
 
     vector<shared_ptr<Road>> siblings;
     
@@ -29,7 +31,7 @@ private:
     int road_limit;
     float road_scalar;
 
-    ofMesh mesh, roadMesh;
+    ofMesh mesh;
     ofMesh crossingMesh;
     ofMesh buildingMesh;
 

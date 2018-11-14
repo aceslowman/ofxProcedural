@@ -40,25 +40,16 @@ void ofProceduralCity::setup(){
 }
 
 void ofProceduralCity::setupDebug(){
-    roadMesh.setMode(OF_PRIMITIVE_LINES);
     mesh.setMode(OF_PRIMITIVE_POINTS);
     crossingMesh.setMode(OF_PRIMITIVE_POINTS);
     
-    // assemble the road mesh
-//    placed_list.front();
-    /*
-        take the first item in the placed list. (a)
-        connect (a) to each of it's siblings
-        continue to the next item in the placed list
-     */
-    
-    //siblings are not being pushed back
-    for(auto &r : placed_list.front()->siblings){
-        roadMesh.addVertex((ofVec3f)r->node);
-    }
-    
     for(auto &r : placed_list){
         mesh.addVertex((ofVec3f)r->node);
+        
+        if(r->prev != nullptr){
+            r->line.addVertex((ofVec3f)r->prev->node);
+            r->line.addVertex((ofVec3f)r->node);
+        }
     }
     
     for(auto &i : crossing_list){
@@ -73,8 +64,6 @@ void ofProceduralCity::setupDebug(){
 void ofProceduralCity::generateRoads(){
     ofVec2f map_center = ofVec2f(map_size/2,map_size/2);
     
-//    Road initial_road = Road(0, nullptr, map_center);
-    // make initial road ptr
     shared_ptr<Road> initial_road = make_shared<Road>(0, nullptr, map_center);
 
     pending_list.push_back(initial_road);
@@ -87,13 +76,11 @@ void ofProceduralCity::generateRoads(){
         bool accepted = localConstraints(r);
         
         if(accepted){
-            placed_list.push_back(r); // MOVE pending_list(r) to placed_list(r)
-            pending_list.erase(pending_list.begin()); //now erase the element form pending_list
-            //since pointers can be reassigned... point r at the rece
-//            r = placed_list.back();
+            placed_list.push_back(r);
+            pending_list.erase(pending_list.begin());
             
             for(auto i : globalGoals(r)){
-                r->siblings.push_back(i); // will this be deleted if localConstraints fail?
+                r->siblings.push_back(i);
                 pending_list.push_back(i);
             }
         }
@@ -156,10 +143,7 @@ vector<shared_ptr<Road>> ofProceduralCity::globalGoals(shared_ptr<Road> a){
     
     for(int i = 0; i < max_goals; i++){
         ofVec2f direction = ofVec2f(ofRandom(-1,1),ofRandom(-1,1));
-        // node has not been set yet. default?
-        //but it has been set! Where has a gone?
-        //its a nullptr because of the move() command in generateRoads
-        ofVec2f next_node = a->node + (direction * road_scalar); //BAD ACCESS
+        ofVec2f next_node = a->node + (direction * road_scalar);
     
 //        bool pattern_check = constrainToRightAngles(a, end);
 //        bool pattern_check = true;
@@ -380,12 +364,11 @@ void ofProceduralCity::draw(bool debug){
     }
     
     ofSetColor(ofColor(255,255,255));
-//    for(auto r : placed_list){
-//        if(r.time_delay < global_walk){
-//            r.line.draw();
-//        }
-//    }
-    roadMesh.draw();
+    for(auto r : placed_list){
+        if(r->time_delay < global_walk){
+            r->line.draw();
+        }
+    }
     
     if(debug){
         glPointSize(5);
