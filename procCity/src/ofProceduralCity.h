@@ -2,15 +2,15 @@
 
 #include "ofMain.h"
 
-struct RoadSegment {
-    ofVec2f start, end; // will only need a single point (end)
-    vector<shared_ptr<RoadSegment>> siblings;
+struct Road {
+    shared_ptr<Road> prev;
+    ofVec2f node;
     
     float time_delay;
+
+    vector<shared_ptr<Road>> siblings;
     
-    ofPolyline line;
-    
-    RoadSegment(float _ti, ofVec2f _start, ofVec2f _end);
+    Road(float _time_delay, shared_ptr<Road> _prev, ofVec2f _node);
 };
 
 struct Building {};
@@ -18,8 +18,9 @@ struct Building {};
 class ofProceduralCity {
     
 private:
-    vector<RoadSegment> pending_list;
-    vector<RoadSegment> placed_list;
+    vector<shared_ptr<Road>> pending_list;
+    vector<shared_ptr<Road>> placed_list;
+    
     vector<ofVec2f> crossing_list;
     vector<ofVec2f> building_list;
     
@@ -28,7 +29,7 @@ private:
     int road_limit;
     float road_scalar;
 
-    ofMesh mesh;
+    ofMesh mesh, roadMesh;
     ofMesh crossingMesh;
     ofMesh buildingMesh;
 
@@ -40,10 +41,10 @@ private:
     void divideIntoLots();
     
     // constraint
-    bool localConstraints(RoadSegment &a);
-    vector<RoadSegment> globalGoals(RoadSegment &a);
-    bool checkForCrossings(RoadSegment &a);
-    bool checkForNearby(RoadSegment &a);
+    bool localConstraints(shared_ptr<Road> a);
+    vector<shared_ptr<Road>> globalGoals(shared_ptr<Road> a);
+    bool checkForCrossings(shared_ptr<Road> a);
+    bool checkForNearby(shared_ptr<Road> a);
     
     // checks
     bool globalBoundsCheck(ofVec2f &a);
@@ -52,12 +53,12 @@ private:
     int samplePopulation(ofVec2f s);
     bool getLineIntersection(ofVec2f p0, ofVec2f p1, ofVec2f p2, ofVec2f p3, ofVec2f &intersection);
     float getDistanceBetweenPointandLine( ofVec2f a, ofVec2f b, ofVec2f p );
-    static bool sortByDelay(RoadSegment A, RoadSegment B);
+    static bool sortByDelay(shared_ptr<Road> A, shared_ptr<Road> B);
     static bool sortByDistance(ofVec2f A, ofVec2f B, ofVec2f pt);
     
     // city rules
-    bool constrainToRightAngles(RoadSegment &prev, ofVec2f &end);
-    bool constrainToPopulation(RoadSegment &prev, ofVec2f &end);
+    bool constrainToRightAngles(Road &prev, ofVec2f &end);
+    bool constrainToPopulation(Road &prev, ofVec2f &end);
     
 public:
     int map_size;
