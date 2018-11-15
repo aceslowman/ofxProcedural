@@ -24,3 +24,5 @@ xcuserdata
 *.xcscmblueprint
 
 .DS_Store
+
+*/bin/*.app
