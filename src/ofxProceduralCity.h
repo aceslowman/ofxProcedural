@@ -4,7 +4,7 @@
 
 struct Road {
     shared_ptr<Road> prev;
-    ofVec2f node;
+    ofVec3f node;
     
     float time_delay;
     
@@ -12,10 +12,12 @@ struct Road {
 
     vector<shared_ptr<Road>> siblings;
     
-    Road(float _time_delay, shared_ptr<Road> _prev, ofVec2f _node);
+    Road(float _time_delay, shared_ptr<Road> _prev, ofVec3f _node);
 };
 
-struct Building {};
+struct Building {
+    ofPath path;
+};
 
 class ofxProceduralCity {
     
@@ -23,10 +25,13 @@ private:
     vector<shared_ptr<Road>> pending_list;
     vector<shared_ptr<Road>> placed_list;
     
-    vector<ofVec2f> crossing_list;
-    vector<ofVec2f> building_list;
+    vector<ofVec3f> crossing_list;
+    vector<ofVec3f> building_list;
+    
+    vector<Building> buildings;
     
     ofImage pop_map;
+    ofImage elevation_map;
 
     int road_limit;
     float road_scalar;
@@ -49,7 +54,7 @@ private:
     bool checkForNearby(shared_ptr<Road> a);
     
     // checks
-    bool globalBoundsCheck(ofVec2f &a);
+    bool globalBoundsCheck(ofVec3f &a);
     
     // utility
     int samplePopulation(ofVec2f s);
@@ -59,8 +64,8 @@ private:
     static bool sortByDistance(ofVec2f A, ofVec2f B, ofVec2f pt);
     
     // city rules
-    bool constrainToRightAngles(shared_ptr<Road> prev, ofVec2f &end);
-    bool constrainToPopulation(shared_ptr<Road> prev, ofVec2f &end);
+    bool constrainToRightAngles(shared_ptr<Road> prev, ofVec3f &end);
+    bool constrainToPopulation(shared_ptr<Road> prev, ofVec3f &end);
     
 public:
     int map_size;

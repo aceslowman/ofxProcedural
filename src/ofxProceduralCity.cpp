@@ -2,7 +2,7 @@
 
 //-----------------------------------------------------------------------------
 
-Road::Road(float _time_delay, shared_ptr<Road> _prev, ofVec2f _node): time_delay(_time_delay), prev(_prev), node(_node){}
+Road::Road(float _time_delay, shared_ptr<Road> _prev, ofVec3f _node): time_delay(_time_delay), prev(_prev), node(_node){}
 
 //-----------------------------------------------------------------------------
 // SETUP
@@ -23,7 +23,7 @@ void ofxProceduralCity::reset(){
 }
 
 void ofxProceduralCity::setup(){
-    road_limit = 100;
+    road_limit = 1000;
     global_walk = 0;
     map_size = 512;
     generatePopulationMap();
@@ -44,16 +44,16 @@ void ofxProceduralCity::setupDebug(){
     crossingMesh.setMode(OF_PRIMITIVE_POINTS);
     
     for(auto &r : placed_list){
-        mesh.addVertex((ofVec3f)r->node);
+        mesh.addVertex(r->node);
         
         if(r->prev != nullptr){
-            r->line.addVertex((ofVec3f)r->prev->node);
-            r->line.addVertex((ofVec3f)r->node);
+            r->line.addVertex(r->prev->node);
+            r->line.addVertex(r->node);
         }
     }
     
     for(auto &i : crossing_list){
-        crossingMesh.addVertex((ofVec3f)i);
+        crossingMesh.addVertex(i);
     }
 }
 
@@ -62,7 +62,7 @@ void ofxProceduralCity::setupDebug(){
 //-----------------------------------------------------------------------------
 
 void ofxProceduralCity::generateRoads(){
-    ofVec2f map_center = ofVec2f(map_size/2,map_size/2);
+    ofVec3f map_center = ofVec3f(map_size/2,map_size/2,0);
     
     shared_ptr<Road> initial_road = make_shared<Road>(0, nullptr, map_center);
 
@@ -121,6 +121,11 @@ void ofxProceduralCity::divideIntoLots(){
     //in which you will subdivide it's longest edges
     //until the individual blocks
     //have an area below a certain threshold
+    shared_ptr<Road> rd = placed_list.front();
+    Building t_build;
+    t_build.path.moveTo(rd->node);
+    //grab the furthest right sibling (from the axis defined by rd->prev->node to rd->node
+//    t_build.path.lineTo(rd->siblings);
 }
 
 //-----------------------------------------------------------------------------
@@ -214,11 +219,11 @@ vector<shared_ptr<Road>> ofxProceduralCity::globalGoals(shared_ptr<Road> a){
     
     int max_goals = 2;
     
-//    (placed_list.size() < road_limit) ? max_goals = 2 : max_goals = 0;
+    (placed_list.size() < road_limit) ? max_goals = 2 : max_goals = 0;
     
     for(int i = 0; i < max_goals; i++){
-        ofVec2f direction = ofVec2f(ofRandom(-1,1),ofRandom(-1,1));
-        ofVec2f next_node = a->node + (direction * road_scalar);
+        ofVec3f direction = ofVec3f(ofRandom(-1,1),ofRandom(-1,1),0);
+        ofVec3f next_node = a->node + (direction * road_scalar);
         
         bool accepted = true;
         if(a->prev != nullptr){
@@ -239,7 +244,7 @@ vector<shared_ptr<Road>> ofxProceduralCity::globalGoals(shared_ptr<Road> a){
     return t_priority;
 }
 
-bool ofxProceduralCity::constrainToRightAngles(shared_ptr<Road> prev, ofVec2f &end){
+bool ofxProceduralCity::constrainToRightAngles(shared_ptr<Road> prev, ofVec3f &end){
     if(prev->prev == nullptr){ return true; }
     /*
         I am wondering if there are efficiency issues tied to the number of points we are dropping without
@@ -248,15 +253,15 @@ bool ofxProceduralCity::constrainToRightAngles(shared_ptr<Road> prev, ofVec2f &e
     
     /* TODO: two roads should not be generated in the same quadrant. */
 
-    ofVec2f prev_direction = ofVec2f(prev->node - prev->prev->node).normalize();
-    ofVec2f new_direction = prev_direction;
+    ofVec3f prev_direction = ofVec3f(prev->node - prev->prev->node).normalize();
+    ofVec3f new_direction = prev_direction;
     
     int quadrant = (int)ofRandom(4);
     float range = 5.0f;
     float tendency = 90.0f; // 45 degree angle results in spiral!
     
     float random_angle = ofRandom((tendency * quadrant) - range,(tendency * quadrant) + range);
-    new_direction.rotate(random_angle);
+    new_direction.rotate(random_angle,ofVec3f(0,0,1));
     
     //end is only used if accepted. so maybe I should return to the old use of (prev, end)
     end = prev->node + (new_direction * road_scalar);
@@ -264,7 +269,7 @@ bool ofxProceduralCity::constrainToRightAngles(shared_ptr<Road> prev, ofVec2f &e
     return true;
 }
 
-bool ofxProceduralCity::constrainToPopulation(shared_ptr<Road> prev, ofVec2f &end){
+bool ofxProceduralCity::constrainToPopulation(shared_ptr<Road> prev, ofVec3f &end){
     if(prev->prev == nullptr){ return true; }
     
     float range = 30; // paramaterize!!!
@@ -278,21 +283,23 @@ bool ofxProceduralCity::constrainToPopulation(shared_ptr<Road> prev, ofVec2f &en
         ofPolyline ray;
         float sum = 0;
 
-        ray.addVertex((ofVec3f)prev->prev->node);
+        ray.addVertex(prev->prev->node);
 
-        ofVec2f direction = ofVec2f(prev->node - prev->prev->node).normalize();
+        ofVec3f direction = ofVec3f(prev->node - prev->prev->node).normalize();
 
         float random_angle = ofRandom(-range,range);
-        direction.rotate(random_angle);
+        direction.rotate(random_angle,ofVec3f(0,0,1));
 
-        ofVec2f t_end = prev->node + (direction * road_scalar);
+        ofVec3f t_end = prev->node + (direction * road_scalar);
 
-        ray.addVertex((ofVec3f)t_end);
+        ray.addVertex(t_end);
 
         // at three points along the ray, sample the population map and add to the sum
         for(int j = 0; j < numSample; j++){
-            ofVec2f p = (ofVec2f)ray.getPointAtIndexInterpolated((1.0f/3)*j);
-            sum += samplePopulation(p);
+            ofVec3f p = ray.getPointAtIndexInterpolated((1.0f/3)*j);
+            if(globalBoundsCheck(p)){
+                sum += samplePopulation((ofVec2f)p);
+            }
         }
 
         if(sum > t_sum){
@@ -301,7 +308,7 @@ bool ofxProceduralCity::constrainToPopulation(shared_ptr<Road> prev, ofVec2f &en
         }
     }
 
-    end = (ofVec2f)t_ray.getPointAtIndexInterpolated(1);
+    end = t_ray.getPointAtIndexInterpolated(1);
 
     return true;
 }
@@ -310,7 +317,7 @@ bool ofxProceduralCity::constrainToPopulation(shared_ptr<Road> prev, ofVec2f &en
 // CHECKS
 //-----------------------------------------------------------------------------
 
-bool ofxProceduralCity::globalBoundsCheck(ofVec2f &a){
+bool ofxProceduralCity::globalBoundsCheck(ofVec3f &a){
     if(a.x >= map_size || a.x <= 0 || a.y >= map_size || a.y <= 0){
         ofLog(OF_LOG_ERROR, "OUT OF BOUNDS");
         return false;
@@ -391,10 +398,10 @@ void ofxProceduralCity::draw(bool debug){
             for(auto sib : r->siblings){
                 ofSetColor(ofColor(255,165,0)); // ORANGE
                 ofSetLineWidth(3);
-                ofDrawArrow((ofVec3f)r->node, (ofVec3f)sib->node);
+                ofDrawArrow(r->node, sib->node);
             }
             ofSetColor(ofColor(148,0,211)); // PURPLE
-            ofDrawArrow((ofVec3f)r->node, (ofVec3f)r->prev->node);
+            ofDrawArrow(r->node, r->prev->node);
             ofSetLineWidth(1);
             ofSetColor(ofColor(255,255,255));
         }
@@ -411,6 +418,9 @@ void ofxProceduralCity::draw(bool debug){
         buildingMesh.draw();
         ofSetColor(ofColor(255,255,255));
         
+        ofSetColor(ofColor(0));
+        ofDrawRectangle(0,0,200,30);
+        ofSetColor(ofColor(255));
         ofDrawBitmapString("Total Nodes: " + ofToString(placed_list.size()), 10, 10);
         ofDrawBitmapString("Global Walk: " + ofToString(global_walk), 10, 25);
     }
