@@ -79,11 +79,14 @@ void ofProceduralCity::generateRoads(){
         }
         
         if(accepted){
+            if(r->prev != nullptr){
+                r->prev->siblings.push_back(r); //only add the sibling to the prev if all conditions have been met
+            }
+            
             placed_list.push_back(r);
             pending_list.erase(pending_list.begin());
             
             for(auto i : globalGoals(r)){
-                r->siblings.push_back(i);
                 pending_list.push_back(i);
             }
         }else{
@@ -232,6 +235,7 @@ vector<shared_ptr<Road>> ofProceduralCity::globalGoals(shared_ptr<Road> a){
         }
     }
     
+    
     return t_priority;
 }
 
@@ -263,7 +267,7 @@ bool ofProceduralCity::constrainToRightAngles(shared_ptr<Road> prev, ofVec2f &en
 bool ofProceduralCity::constrainToPopulation(shared_ptr<Road> prev, ofVec2f &end){
     if(prev->prev == nullptr){ return true; }
     
-    float range = 90; // paramaterize!!!
+    float range = 30; // paramaterize!!!
     int numRays = 3;
     int numSample = 3;
 
@@ -379,6 +383,20 @@ void ofProceduralCity::draw(bool debug){
     for(auto r : placed_list){
         if(r->time_delay < global_walk){
             r->line.draw();
+        }
+        
+        int selection_rng = 4;
+        if((ofGetMouseX() < (r->node.x + selection_rng)) && (ofGetMouseX() > (r->node.x - selection_rng))
+           && (ofGetMouseY() < (r->node.y + selection_rng)) && (ofGetMouseY() > (r->node.y - selection_rng))){
+            for(auto sib : r->siblings){
+                ofSetColor(ofColor(255,165,0)); // ORANGE
+                ofSetLineWidth(3);
+                ofDrawArrow((ofVec3f)r->node, (ofVec3f)sib->node);
+            }
+            ofSetColor(ofColor(148,0,211)); // PURPLE
+            ofDrawArrow((ofVec3f)r->node, (ofVec3f)r->prev->node);
+            ofSetLineWidth(1);
+            ofSetColor(ofColor(255,255,255));
         }
     }
     
