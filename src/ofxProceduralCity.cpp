@@ -386,7 +386,7 @@ void ofxProceduralCity::draw(bool debug){
         }
         
         int selection_rng = 4;
-        if((ofGetMouseX() < (r->node.x + selection_rng)) && (ofGetMouseX() > (r->node.x - selection_rng))
+        if((r->prev != nullptr) && (ofGetMouseX() < (r->node.x + selection_rng)) && (ofGetMouseX() > (r->node.x - selection_rng))
            && (ofGetMouseY() < (r->node.y + selection_rng)) && (ofGetMouseY() > (r->node.y - selection_rng))){
             for(auto sib : r->siblings){
                 ofSetColor(ofColor(255,165,0)); // ORANGE
