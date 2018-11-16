@@ -3,6 +3,8 @@
 //--------------------------------------------------------------
 void ofApp::setup(){
     debug = true;
+   
+    city.setup();
     
     cam.removeAllInteractions();
     cam.addInteraction(ofEasyCam::TRANSFORM_TRANSLATE_XY,OF_MOUSE_BUTTON_LEFT);
@@ -12,8 +14,9 @@ void ofApp::setup(){
     cam.setNearClip(-1000000);
     cam.setFarClip(1000000);
     cam.setVFlip(true);
+    cam.setAutoDistance(false);
     
-    city.setup();
+    cam.setGlobalPosition(city.map_size/2,city.map_size/2,0);
 }
 
 //--------------------------------------------------------------
@@ -27,6 +30,13 @@ void ofApp::draw(){
 
     cam.begin();
     
+    if(drawPop){
+        city.drawPopMap();
+    }
+    if(drawElev){
+        city.drawElevationMap();
+    }
+    
     city.draw(debug);
 
     if(debug){
@@ -34,6 +44,12 @@ void ofApp::draw(){
     }
     
     cam.end();
+    
+    ofSetColor(ofColor(0));
+    ofDrawRectangle(0,ofGetHeight()-20,300,ofGetHeight());
+    ofSetColor(ofColor(255));
+    ofDrawBitmapString("(1) Population (2) Elevation",10,ofGetHeight()-7);
+
 }
 
 //--------------------------------------------------------------
@@ -50,6 +66,14 @@ void ofApp::keyPressed(int key){
     if(key == 'b'){
         cam.setGlobalPosition(city.map_size/2,city.map_size/2,0);
         city.reset();
+    }
+    if(key == '1'){
+        drawPop = true;
+        drawElev = false;
+    }
+    if(key == '2'){
+        drawPop = false;
+        drawElev = true;
     }
 }
 

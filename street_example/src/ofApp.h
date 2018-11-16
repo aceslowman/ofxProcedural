@@ -23,6 +23,7 @@ class ofApp : public ofBaseApp{
 		void gotMessage(ofMessage msg);
 
     bool debug;
+    bool drawPop, drawElev;
     
     ofEasyCam cam;
     ofxProceduralCity city;

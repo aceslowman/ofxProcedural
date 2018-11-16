@@ -381,11 +381,15 @@ bool ofxProceduralCity::sortByDistance(ofVec2f A, ofVec2f B, ofVec2f pt){
 // DRAWING
 //-----------------------------------------------------------------------------
 
+void ofxProceduralCity::drawPopMap(){
+    pop_map.draw(0,0,map_size,map_size);
+}
+
+void ofxProceduralCity::drawElevationMap(){
+    elevation_map.draw(0,0,map_size,map_size);
+}
+
 void ofxProceduralCity::draw(bool debug){
-    if(debug){
-        pop_map.draw(0,0,map_size,map_size);
-    }
-    
     ofSetColor(ofColor(255,255,255));
     for(auto r : placed_list){
         if(r->time_delay < global_walk){
@@ -393,15 +397,17 @@ void ofxProceduralCity::draw(bool debug){
         }
         
         int selection_rng = 4;
-        if((r->prev != nullptr) && (ofGetMouseX() < (r->node.x + selection_rng)) && (ofGetMouseX() > (r->node.x - selection_rng))
+        if((ofGetMouseX() < (r->node.x + selection_rng)) && (ofGetMouseX() > (r->node.x - selection_rng))
            && (ofGetMouseY() < (r->node.y + selection_rng)) && (ofGetMouseY() > (r->node.y - selection_rng))){
             for(auto sib : r->siblings){
                 ofSetColor(ofColor(255,165,0)); // ORANGE
                 ofSetLineWidth(3);
                 ofDrawArrow(r->node, sib->node);
             }
-            ofSetColor(ofColor(148,0,211)); // PURPLE
-            ofDrawArrow(r->node, r->prev->node);
+            if(r->prev != nullptr){
+                ofSetColor(ofColor(148,0,211)); // PURPLE
+                ofDrawArrow(r->node, r->prev->node);
+            }
             ofSetLineWidth(1);
             ofSetColor(ofColor(255,255,255));
         }

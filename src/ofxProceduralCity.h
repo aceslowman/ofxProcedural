@@ -77,4 +77,6 @@ public:
 
     // drawing
     void draw(bool debug);
+    void drawPopMap();
+    void drawElevationMap();
 };
