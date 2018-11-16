@@ -160,8 +160,8 @@ bool ofxProceduralCity::localConstraints(shared_ptr<Road> a){
 
     if(crossings && nearby){
         //calculate final elevation
-        //m
-        a->node.z = sampleMap((ofVec2f)a->node, elevation_map);
+        //maybe this should happen somewhere else.
+//        a->node.z = sampleMap((ofVec2f)a->node, elevation_map);
         return true;
     }else{
         return false;
@@ -171,7 +171,7 @@ bool ofxProceduralCity::localConstraints(shared_ptr<Road> a){
 bool ofxProceduralCity::checkForCrossings(shared_ptr<Road> a){
     float tolerance = 10.0f;
 
-    vector<ofVec2f> crossings;
+    vector<ofVec3f> crossings;
     for(auto b : placed_list){
         if (b->prev == nullptr) { continue; }
         if (a->prev->node == b->prev->node || a->node == b->node || a->prev->node == b->node || a->node == b->prev->node) { continue; } //can probably do some pointer comparison here

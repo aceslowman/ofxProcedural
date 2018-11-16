@@ -22,12 +22,10 @@ struct Building {
 class ofxProceduralCity {
     
 private:
-    vector<shared_ptr<Road>> pending_list;
-    vector<shared_ptr<Road>> placed_list;
+    vector<shared_ptr<Road>> pending_list; //use lists?
+    vector<shared_ptr<Road>> placed_list; //use lists?
     
     vector<ofVec3f> crossing_list;
-    vector<ofVec3f> building_list;
-    
     vector<Building> buildings;
     
     ofImage population_map;
