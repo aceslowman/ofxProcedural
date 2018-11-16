@@ -15,8 +15,11 @@ void ofApp::setup(){
     cam.setFarClip(1000000);
     cam.setVFlip(true);
     cam.setAutoDistance(false);
-    
+
     cam.setGlobalPosition(city.map_size/2,city.map_size/2,0);
+    
+    drawElev = false;
+    drawPop = true;
 }
 
 //--------------------------------------------------------------

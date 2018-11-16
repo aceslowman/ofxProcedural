@@ -30,7 +30,7 @@ private:
     
     vector<Building> buildings;
     
-    ofImage pop_map;
+    ofImage population_map;
     ofImage elevation_map;
 
     int road_limit;
@@ -44,7 +44,7 @@ private:
     
     // generation
     void generateRoads();
-    void generatePopulationMap();
+    void generateMaps();
     void divideIntoLots();
     
     // constraint
@@ -57,7 +57,7 @@ private:
     bool globalBoundsCheck(ofVec3f &a);
     
     // utility
-    int samplePopulation(ofVec2f s);
+    int sampleMap(ofVec2f s, ofImage &img);
     bool getLineIntersection(ofVec2f p0, ofVec2f p1, ofVec2f p2, ofVec2f p3, ofVec2f &intersection);
     float getDistanceBetweenPointandLine( ofVec2f a, ofVec2f b, ofVec2f p );
     static bool sortByDelay(shared_ptr<Road> A, shared_ptr<Road> B);

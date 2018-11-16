@@ -14,7 +14,8 @@ void ofxProceduralCity::reset(){
     placed_list.clear();
     crossing_list.clear();
     
-    pop_map.clear();
+    population_map.clear();
+    elevation_map.clear();
     
     mesh.clear();
     crossingMesh.clear();
@@ -26,7 +27,8 @@ void ofxProceduralCity::setup(){
     road_limit = 1000;
     global_walk = 0;
     map_size = 512;
-    generatePopulationMap();
+    
+    generateMaps();
     
     ofSetWindowShape(map_size, map_size);
     ofSetWindowPosition((ofGetScreenWidth() / 2.0)-(map_size/2.0), (ofGetScreenHeight() / 2.0)-(map_size/2.0));
@@ -96,23 +98,43 @@ void ofxProceduralCity::generateRoads(){
     }
 }
 
-void ofxProceduralCity::generatePopulationMap(){
-    ofPixels t_pop;
-    t_pop.allocate(map_size, map_size, OF_IMAGE_GRAYSCALE);
-    pop_map.allocate(map_size, map_size, OF_IMAGE_GRAYSCALE);
+void ofxProceduralCity::generateMaps(){
+    ofPixels pop_base, elev_base;
+    pop_base.allocate(map_size, map_size, OF_IMAGE_GRAYSCALE);
+    elev_base.allocate(map_size, map_size, OF_IMAGE_GRAYSCALE);
+    population_map.allocate(map_size, map_size, OF_IMAGE_GRAYSCALE);
     
     ofSeedRandom();
     
-    float scale = 500;
+    int octaves = 7;
     float offset = ofRandom(100);
     
-    for(int i = 0; i < map_size; i++){
-        for(int j = 0; j < map_size; j++){
-            t_pop.setColor(i, j, ofColor(ofNoise(i/scale + offset, j/scale + offset)*255));
+    int pop_detail = 1;
+    int elev_detail = 6;
+    
+    for(int x = 0; x < map_size; x++){
+        for(int y = 0; y < map_size; y++){
+            ofVec2f st = ofVec2f(x,y);
+            
+            float value = 0.0;
+            float amplitude = 150.0;
+            float frequency = 500.0;
+            
+            for(int i = 0; i < octaves; i++){
+                value += amplitude * ofNoise(st/frequency+offset);
+                st *= 2.0;
+                amplitude *= 0.5;
+                if(i == pop_detail){
+                    pop_base.setColor(x,y, ofColor(ofClamp(value,0,255)));
+                }else if(i == elev_detail){ //inverted
+                    elev_base.setColor(x,y, ofColor(255 - ofClamp(value,0,255)));
+                }
+            }
         }
     }
     
-    pop_map.setFromPixels(t_pop);
+    population_map.setFromPixels(pop_base);
+    elevation_map.setFromPixels(elev_base);
 }
 
 void ofxProceduralCity::divideIntoLots(){
@@ -137,6 +159,9 @@ bool ofxProceduralCity::localConstraints(shared_ptr<Road> a){
     bool nearby = checkForNearby(a);
 
     if(crossings && nearby){
+        //calculate final elevation
+        //m
+        a->node.z = sampleMap((ofVec2f)a->node, elevation_map);
         return true;
     }else{
         return false;
@@ -298,7 +323,7 @@ bool ofxProceduralCity::constrainToPopulation(shared_ptr<Road> prev, ofVec3f &en
         for(int j = 0; j < numSample; j++){
             ofVec3f p = ray.getPointAtIndexInterpolated((1.0f/3)*j);
             if(globalBoundsCheck(p)){
-                sum += samplePopulation((ofVec2f)p);
+                sum += sampleMap((ofVec2f)p, population_map);
             }
         }
 
@@ -330,8 +355,8 @@ bool ofxProceduralCity::globalBoundsCheck(ofVec3f &a){
 // UTILITY
 //-----------------------------------------------------------------------------
 
-int ofxProceduralCity::samplePopulation(ofVec2f s){
-    ofPixels &pix = pop_map.getPixels();
+int ofxProceduralCity::sampleMap(ofVec2f s, ofImage &img){
+    ofPixels &pix = img.getPixels();
     
     return pix.getColor(s.x,s.y).r;
 }
@@ -382,7 +407,7 @@ bool ofxProceduralCity::sortByDistance(ofVec2f A, ofVec2f B, ofVec2f pt){
 //-----------------------------------------------------------------------------
 
 void ofxProceduralCity::drawPopMap(){
-    pop_map.draw(0,0,map_size,map_size);
+    population_map.draw(0,0,map_size,map_size);
 }
 
 void ofxProceduralCity::drawElevationMap(){
