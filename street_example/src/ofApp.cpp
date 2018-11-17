@@ -6,6 +6,7 @@ void ofApp::setup(){
    
     city.setup();
     
+    
     cam.removeAllInteractions();
     cam.addInteraction(ofEasyCam::TRANSFORM_TRANSLATE_XY,OF_MOUSE_BUTTON_LEFT);
     cam.addInteraction(ofEasyCam::TRANSFORM_TRANSLATE_Z, OF_MOUSE_BUTTON_RIGHT);
@@ -34,25 +35,30 @@ void ofApp::draw(){
     cam.begin();
     
     if(drawPop){
-        city.drawPopMap();
-    }
-    if(drawElev){
-        city.drawElevationMap();
+        city.population_map.draw();
+    }else if(drawElev){
+        city.elevation_map.draw();
     }
     
-    city.draw(debug);
+    city.roads.draw(true);
 
-    if(debug){
-        ofDrawGrid(city.map_size/10.0f, 10, false, false, false, true);
-    }
+//    if(debug){
+//        ofDrawGrid(city.map_size/10.0f, 10, false, false, false, true);
+//    }
     
     cam.end();
-    
-    ofSetColor(ofColor(0));
-    ofDrawRectangle(0,ofGetHeight()-20,300,ofGetHeight());
-    ofSetColor(ofColor(255));
-    ofDrawBitmapString("(1) Population (2) Elevation",10,ofGetHeight()-7);
 
+    if(drawPop){
+        ofSetColor(ofColor(0));
+        ofDrawRectangle(0,ofGetHeight()-20,200,ofGetHeight());
+        ofSetColor(ofColor(255));
+        ofDrawBitmapString("(1) Population",10,ofGetHeight()-6);
+    }else if(drawElev){
+        ofSetColor(ofColor(0));
+        ofDrawRectangle(0,ofGetHeight()-20,200,ofGetHeight());
+        ofSetColor(ofColor(255));
+        ofDrawBitmapString("(2) Elevation",10,ofGetHeight()-6);
+    }
 }
 
 //--------------------------------------------------------------
