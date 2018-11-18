@@ -74,6 +74,7 @@ namespace proc_utils {
     bool sortByDistance(ofVec2f A, ofVec2f B, ofVec2f pt){
         return (pt.distance(A) < pt.distance(B));
     }
+
 }
 
 

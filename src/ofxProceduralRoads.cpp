@@ -1,6 +1,11 @@
 #include "ofxProceduralRoads.h"
 #include "ofxProceduralCity.h"
 
+#include <algorithm>    // std::shuffle
+#include <array>        // std::array
+#include <random>       // std::default_random_engine
+#include <chrono>       // std::chrono::system_clock
+
 //-----------------------------------------------------------------------------
 //  Setup
 //-----------------------------------------------------------------------------
@@ -17,8 +22,8 @@ void ofxProceduralRoads::reset(){
 }
 
 void ofxProceduralRoads::setup(){
-    road_limit = 1000;
-    road_scalar = city->map_size/10.0f;
+    road_limit = 10000;
+    road_scalar = city->map_size/30.0f;
     
     generate();
     
@@ -64,7 +69,7 @@ void ofxProceduralRoads::generate(){
             placed_list.push_back(r);
             pending_list.erase(pending_list.begin());
             
-            int mode = 1;
+            int mode = 0;
             
             for(auto i : globalGoals(r, mode)){
                 pending_list.push_back(i);
@@ -187,27 +192,34 @@ vector<shared_ptr<Road>> ofxProceduralRoads::rightAngleGoal(shared_ptr<Road> a){
     
     (placed_list.size() < road_limit) ? max_goals = 2 : max_goals = 0;
     
+    std::array<int,4> quadrants {1,2,3,4};
+    
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    std::shuffle(quadrants.begin(), quadrants.end(), std::default_random_engine(seed));
+
     for(int i = 0; i < max_goals; i++){
-        if(a->prev != nullptr && a->prev->prev != nullptr){
+        ofVec3f new_direction;
+        
+        if(a->prev != nullptr){
             ofVec3f prev_direction = ofVec3f(a->node - a->prev->node).normalize();
-            ofVec3f new_direction = prev_direction;
+            new_direction = prev_direction;
             
-            /* TODO: two roads should not be generated in the same quadrant. */
-            int quadrant = (int)ofRandom(4);
-            
-            float random_angle = ofRandom((tendency * quadrant) - range,(tendency * quadrant) + range);
-            new_direction.rotate(random_angle,ofVec3f(0,0,1));
+            float angle = ofRandom((tendency * quadrants[i]) - range,(tendency * quadrants[i]) + range);
+            new_direction.rotate(angle, ofVec3f(0,0,1));
             
             ofVec3f end = a->node + (new_direction * road_scalar);
             
             shared_ptr<Road> new_road = make_shared<Road>(a->time_delay + 1, a, end);
             t_priority.push_back(new_road);
-        }else{
-            ofVec3f new_direction = ofVec3f(ofRandom(-1,1),ofRandom(-1,1),0);
+        }else{ // define default point
+            new_direction = ofVec3f(ofRandom(-1,1),ofRandom(-1,1),0).normalize();
+            
             ofVec3f end = a->node + (new_direction * road_scalar);
             
             shared_ptr<Road> new_road = make_shared<Road>(a->time_delay + 1, a, end);
             t_priority.push_back(new_road);
+            
+            break;
         }
     }
     

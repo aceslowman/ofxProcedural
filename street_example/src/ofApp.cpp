@@ -34,17 +34,20 @@ void ofApp::draw(){
 
     cam.begin();
     
-    if(drawPop){
-        city.population_map.draw();
-    }else if(drawElev){
-        city.elevation_map.draw();
+    if(debug){
+        if(drawPop){
+            city.population_map.draw();
+        }else if(drawElev){
+            city.elevation_map.draw();
+        }
     }
     
-    city.roads.draw(true);
+    city.roads.draw(debug);
 
-//    if(debug){
-//        ofDrawGrid(city.map_size/10.0f, 10, false, false, false, true);
-//    }
+    if(debug){
+        ofSetColor(ofColor(0,0,255,100));
+        ofDrawGrid(city.map_size/10.0f, 10, false, false, false, true);
+    }
     
     cam.end();
 

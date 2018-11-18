@@ -28,7 +28,6 @@ private:
     vector<shared_ptr<Road>> globalGoals(shared_ptr<Road> a, int mode);
     vector<shared_ptr<Road>> rightAngleGoal(shared_ptr<Road> a);
     vector<shared_ptr<Road>> populationGoal(shared_ptr<Road> a);
-//    vector<shared_ptr<Road>> populationGoal(shared_ptr<Road> prev, ofVec3f &end, float range, int numRays, int numSample);
     
     vector<shared_ptr<Road>> pending_list; //use lists?
     vector<shared_ptr<Road>> placed_list; //use lists?
