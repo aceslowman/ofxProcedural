@@ -6,17 +6,6 @@
 #include <random>       // std::default_random_engine
 #include <chrono>       // std::chrono::system_clock
 
-/*
- 
-    -----------TODO-------------
-    globalBoundsCheck appears to be failing
-    join nearby roads, not just intersections
-    remove any and all duplicates, and assure their relationships are valid
- 
-    -----------DONE-------------
-        add prev as a sibling
- */
-
 //-----------------------------------------------------------------------------
 //  Setup
 //-----------------------------------------------------------------------------
@@ -33,9 +22,9 @@ void ofxProceduralRoads::reset(){
 }
 
 void ofxProceduralRoads::setup(){
-    city->global_walk = 100;
-    road_limit = 300;
-    road_scalar = city->map_size/15.0f;
+    city->global_walk = 50;
+    road_limit = 500;
+    road_scalar = city->map_size/10.0f;
     
     generate();
     
@@ -80,10 +69,10 @@ void ofxProceduralRoads::generate(){
             int mode = 0;
             
             for(auto i : globalGoals(a, mode)){
-                pending_list.push_back(i); //anything in pending (which includes A) SHOULD have a prev (set in the constructor), but no siblings
+                pending_list.push_back(i);
             }
         }else{
-            pending_list.erase(pending_list.begin());
+            pending_list.erase(pending_list.begin()); //properly removed
         }
     }
 }
@@ -96,18 +85,14 @@ bool ofxProceduralRoads::localConstraints(shared_ptr<Road> a){
     bool crossings = checkForCrossings(a, 10);
     bool nearby = checkForDuplicates(a, 10);
     
-    if(crossings && nearby){
-        return true;
-    }else{
-        return false;
-    }
+    return crossings && nearby;
 }
 
 bool ofxProceduralRoads::checkForCrossings(shared_ptr<Road> a, float tolerance){
     vector<Crossing> crossings;
 
     for(auto b : placed_list){
-        if (b->prev == nullptr || a->prev->node == b->prev->node || a->prev->node == b->node) { break; } //switching 'continue' to 'break' allows for functioning,,,
+        if (b->prev == nullptr || a->prev->node == b->prev->node || a->prev->node == b->node) { continue; }
         
         ofVec2f crossing;
         
@@ -124,7 +109,7 @@ bool ofxProceduralRoads::checkForCrossings(shared_ptr<Road> a, float tolerance){
     bool intersects = crossings.size() > 0;
     if(intersects){
         std::sort(crossings.begin(), crossings.end(), [&](Crossing A, Crossing B){
-            return (a->node.distance(A.location) < a->node.distance(B.location));
+            return (a->node.distance(A.location) > a->node.distance(B.location));
         });
         
         Crossing match = crossings.front();
@@ -142,67 +127,16 @@ bool ofxProceduralRoads::checkForCrossings(shared_ptr<Road> a, float tolerance){
 }
 
 bool ofxProceduralRoads::checkForDuplicates(shared_ptr<Road> a, float tolerance){
-    // if there is a duplicate
+    bool close_to_node = false;
     
     for(auto b : placed_list){
-        bool close_to_node = a->node.distance(b->node) < tolerance;
-        
-        if(close_to_node){
+        if(a->node.distance(b->node) < tolerance){
+            close_to_node = true;
             b->siblings.push_back(a->prev); //only if prev doesn't already exist in siblings...
-            
-            return false; // dupes
-        }else{
-            return true; // no dupes
         }
     }
     
-    
-    
-    // move all siblings (and prev?) to the point in placed_list (b)
-    
-    // return false to remove the pending road
-    
-    
-//
-//    bool merged = false;
-//
-//    auto isSimilar = [ & ] (const shared_ptr<Road> & b) -> bool{   //lambda
-//        bool close_to_node = a->node.distance(b->node) < tolerance;
-//
-//        if(close_to_node){
-//            for(auto sibling : b->siblings){
-//                auto it = sibling->siblings.begin();
-//                while(it != sibling->siblings.end()){
-//                    if((*it) == b){
-//                        it = sibling->siblings.erase(it);
-//                    }else{
-//                        it++;
-//                    }
-//                }
-//            }
-//
-//            a->siblings.insert(std::end(a->siblings), std::begin(b->siblings), std::end(b->siblings));
-//
-//            merged = true;
-//
-//            return true;
-//        }else{
-//            return false;
-//        }
-//    };
-//
-//    placed_list.erase(std::remove_if(placed_list.begin(), placed_list.end(), isSimilar), placed_list.end());
-//
-//    if(merged){
-//        bool cross = checkForCrossings(a, tolerance);
-//
-//        if(!cross){
-////            ofLog(OF_LOG_NOTICE, "checkForCrossings failed");
-//            return false;
-//        }
-//    }
-//
-//    return true;
+    return !close_to_node;
 }
 
 //-----------------------------------------------------------------------------
@@ -214,7 +148,7 @@ vector<shared_ptr<Road>> ofxProceduralRoads::globalGoals(shared_ptr<Road> a, int
         case 0:
             return angleGoal(a, 0, 90);
         default:
-            return populationGoal(a, 30, 3);
+            return populationGoal(a, 60, 3);
     }
 }
 
@@ -225,7 +159,7 @@ vector<shared_ptr<Road>> ofxProceduralRoads::angleGoal(shared_ptr<Road> a, float
     
     (placed_list.size() < road_limit) ? max_goals = 2 : max_goals = 0;
     
-    std::array<int,4> quadrants {1,2,3,4}; // i dont think it should be 4
+    std::array<int,3> quadrants {1,2,3}; // i dont think it should be 4
     
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     std::shuffle(quadrants.begin(), quadrants.end(), std::default_random_engine(seed));
