@@ -60,7 +60,7 @@ void ofxProceduralRoads::generate(){
         if(accepted){
             if(a->prev != nullptr){
                 a->prev->siblings.push_back(a);
-                a->siblings.push_back(a->prev);
+//                a->siblings.push_back(a->prev);
             }
             
             placed_list.push_back(a);
@@ -106,8 +106,7 @@ bool ofxProceduralRoads::checkForCrossings(shared_ptr<Road> a, float tolerance){
         }
     }
     
-    bool intersects = crossings.size() > 0;
-    if(intersects){
+    if(crossings.size() > 0){
         std::sort(crossings.begin(), crossings.end(), [&](Crossing A, Crossing B){
             return (a->node.distance(A.location) > a->node.distance(B.location));
         });
@@ -132,7 +131,10 @@ bool ofxProceduralRoads::checkForDuplicates(shared_ptr<Road> a, float tolerance)
     for(auto b : placed_list){
         if(a->node.distance(b->node) < tolerance){
             close_to_node = true;
-            b->siblings.push_back(a->prev); //only if prev doesn't already exist in siblings...
+            b->siblings.push_back(a->prev); // it gets added as a sibling, but siblings don't draw... we draw (prev->node, node)
+            /*
+                is there some method of 'forward drawing'?
+             */
         }
     }
     
@@ -260,16 +262,22 @@ vector<shared_ptr<Road>> ofxProceduralRoads::populationGoal(shared_ptr<Road> a, 
 void ofxProceduralRoads::draw(bool debug){
     ofSetColor(ofColor(255,255,255));
     
-    int it = 0; // for debugging
+    int it = 0;
     for(auto r : placed_list){
         
+//        if(r->time_delay < city->global_walk){
+//            if(r->prev != nullptr){
+//                ofDrawLine(r->prev->node, r->node);
+//            }
+//
+//            ofDrawBitmapString(ofToString(it), r->node);
+//        }
         if(r->time_delay < city->global_walk){
-            if(r->prev != nullptr){
-                ofDrawLine(r->prev->node, r->node);
+            for(auto sib : r->siblings){
+                ofDrawLine(r->node, sib->node);
             }
-            
-            ofDrawBitmapString(ofToString(it), r->node);
         }
+        ofDrawBitmapString(ofToString(it), r->node);
         it++;
         
         int selection_rng = 4;
