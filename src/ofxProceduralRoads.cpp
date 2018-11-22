@@ -6,6 +6,17 @@
 #include <random>       // std::default_random_engine
 #include <chrono>       // std::chrono::system_clock
 
+/*
+ 
+    -----------TODO-------------
+    globalBoundsCheck appears to be failing
+    join nearby roads, not just intersections
+    remove any and all duplicates, and assure their relationships are valid
+ 
+    -----------DONE-------------
+        add prev as a sibling
+ */
+
 //-----------------------------------------------------------------------------
 //  Setup
 //-----------------------------------------------------------------------------
@@ -22,8 +33,9 @@ void ofxProceduralRoads::reset(){
 }
 
 void ofxProceduralRoads::setup(){
-    road_limit = 10000;
-    road_scalar = city->map_size/30.0f;
+    city->global_walk = 100;
+    road_limit = 300;
+    road_scalar = city->map_size/15.0f;
     
     generate();
     
@@ -32,11 +44,6 @@ void ofxProceduralRoads::setup(){
     
     for(auto &r : placed_list){
         mesh.addVertex(r->node);
-        
-        if(r->prev != nullptr){
-            r->line.addVertex(r->prev->node);
-            r->line.addVertex(r->node);
-        }
     }
     
     for(auto &i : crossing_list){
@@ -54,28 +61,28 @@ void ofxProceduralRoads::generate(){
     
     while(pending_list.size() > 0){
         std::sort (pending_list.begin(), pending_list.end(), sortByDelay);
-        shared_ptr<Road> r = pending_list.front();
+        shared_ptr<Road> a = pending_list.front();
         
         bool accepted = true;
-        if(r->prev != nullptr){
-            accepted = localConstraints(r);
+        if(a->prev != nullptr){
+            accepted = localConstraints(a);
         }
         
         if(accepted){
-            if(r->prev != nullptr){
-                r->prev->siblings.push_back(r);
+            if(a->prev != nullptr){
+                a->prev->siblings.push_back(a);
+                a->siblings.push_back(a->prev);
             }
             
-            placed_list.push_back(r);
+            placed_list.push_back(a);
             pending_list.erase(pending_list.begin());
             
             int mode = 0;
             
-            for(auto i : globalGoals(r, mode)){
-                pending_list.push_back(i);
+            for(auto i : globalGoals(a, mode)){
+                pending_list.push_back(i); //anything in pending (which includes A) SHOULD have a prev (set in the constructor), but no siblings
             }
         }else{
-            ofLog(OF_LOG_NOTICE, "Road failed local constraints! Removing from pending.");
             pending_list.erase(pending_list.begin());
         }
     }
@@ -87,12 +94,9 @@ void ofxProceduralRoads::generate(){
 
 bool ofxProceduralRoads::localConstraints(shared_ptr<Road> a){
     bool crossings = checkForCrossings(a, 10);
-    bool nearby = checkForNearby(a, 10);
+    bool nearby = checkForDuplicates(a, 10);
     
     if(crossings && nearby){
-        //calculate final elevation
-        //maybe this should happen somewhere else.
-        //        a->node.z = sampleMap((ofVec2f)a->node, elevation_map);
         return true;
     }else{
         return false;
@@ -100,67 +104,105 @@ bool ofxProceduralRoads::localConstraints(shared_ptr<Road> a){
 }
 
 bool ofxProceduralRoads::checkForCrossings(shared_ptr<Road> a, float tolerance){
-    vector<ofVec3f> crossings;
+    vector<Crossing> crossings;
+
     for(auto b : placed_list){
-        if (b->prev == nullptr) { continue; }
-        if (a->prev->node == b->prev->node || a->node == b->node || a->prev->node == b->node || a->node == b->prev->node) { continue; } //can probably do some pointer comparison here
+        if (b->prev == nullptr || a->prev->node == b->prev->node || a->prev->node == b->node) { break; } //switching 'continue' to 'break' allows for functioning,,,
         
         ofVec2f crossing;
         
-        bool intersect = proc_utils::getLineIntersection(a->prev->node, a->node, b->prev->node, b->node, crossing);
+        shared_ptr<Road> c = b->prev;
+        
+        bool intersect = proc_utils::getLineIntersection(a->prev->node, a->node, b->node, c->node, crossing);
         
         if(intersect){
-            crossings.push_back(crossing);
+            Crossing match(a, b, c, (ofVec3f)crossing);
+            crossings.push_back(match);
         }
     }
     
     bool intersects = crossings.size() > 0;
     if(intersects){
-        std::sort(crossings.begin(), crossings.end(), std::bind(proc_utils::sortByDistance, std::placeholders::_1, std::placeholders::_2, a->prev->node));
+        std::sort(crossings.begin(), crossings.end(), [&](Crossing A, Crossing B){
+            return (a->node.distance(A.location) < a->node.distance(B.location));
+        });
         
-        a->node = crossings.front();
+        Crossing match = crossings.front();
         
-        crossing_list.push_back(a->node);
+        a->node = match.location;
+        a->siblings.push_back(match.b);
+        a->siblings.push_back(match.c);
+        match.b->siblings.push_back(a);
+        match.c->siblings.push_back(a);
+        
+        crossing_list.push_back(match.location);
     }
     
     return true;
 }
 
-bool ofxProceduralRoads::checkForNearby(shared_ptr<Road> a, float tolerance){
-    /*
-     This still needs a check for nearby, but uncomplete connections. not only do I have
-     to do a crossing check, but I need to merge with nearby roads if within range
-     */
-    
-    bool snapped = false;
+bool ofxProceduralRoads::checkForDuplicates(shared_ptr<Road> a, float tolerance){
+    // if there is a duplicate
     
     for(auto b : placed_list){
-        if(b->prev == nullptr){ continue; }
-        bool close_to_start = a->node.distance(b->prev->node) < tolerance;
-        bool close_to_end = a->node.distance(b->node) < tolerance;
+        bool close_to_node = a->node.distance(b->node) < tolerance;
         
-        if(close_to_start && close_to_end){
-            ofLog(OF_LOG_NOTICE, "discarding by proximity to crossing");
-            return false;
-        }else if(close_to_start){
-            a->node = b->prev->node;
-            snapped = true;
-        }else if(close_to_end){
-            a->node = b->node;
-            snapped = true;
+        if(close_to_node){
+            b->siblings.push_back(a->prev); //only if prev doesn't already exist in siblings...
+            
+            return false; // dupes
+        }else{
+            return true; // no dupes
         }
     }
     
-    if(snapped){
-        bool cross = checkForCrossings(a, tolerance);
-        
-        if(!cross){
-            ofLog(OF_LOG_NOTICE, "checkForCrossings failed");
-            return false;
-        }
-    }
     
-    return true;
+    
+    // move all siblings (and prev?) to the point in placed_list (b)
+    
+    // return false to remove the pending road
+    
+    
+//
+//    bool merged = false;
+//
+//    auto isSimilar = [ & ] (const shared_ptr<Road> & b) -> bool{   //lambda
+//        bool close_to_node = a->node.distance(b->node) < tolerance;
+//
+//        if(close_to_node){
+//            for(auto sibling : b->siblings){
+//                auto it = sibling->siblings.begin();
+//                while(it != sibling->siblings.end()){
+//                    if((*it) == b){
+//                        it = sibling->siblings.erase(it);
+//                    }else{
+//                        it++;
+//                    }
+//                }
+//            }
+//
+//            a->siblings.insert(std::end(a->siblings), std::begin(b->siblings), std::end(b->siblings));
+//
+//            merged = true;
+//
+//            return true;
+//        }else{
+//            return false;
+//        }
+//    };
+//
+//    placed_list.erase(std::remove_if(placed_list.begin(), placed_list.end(), isSimilar), placed_list.end());
+//
+//    if(merged){
+//        bool cross = checkForCrossings(a, tolerance);
+//
+//        if(!cross){
+////            ofLog(OF_LOG_NOTICE, "checkForCrossings failed");
+//            return false;
+//        }
+//    }
+//
+//    return true;
 }
 
 //-----------------------------------------------------------------------------
@@ -168,31 +210,22 @@ bool ofxProceduralRoads::checkForNearby(shared_ptr<Road> a, float tolerance){
 //-----------------------------------------------------------------------------
 
 vector<shared_ptr<Road>> ofxProceduralRoads::globalGoals(shared_ptr<Road> a, int mode){
-    /*
-        There are ways that I can move the stuff from this for loop below, down into the *Goal methods.
-        Essentially they would be more responsible for building *all*
-     */
-    
     switch(mode){
         case 0:
-            return rightAngleGoal(a);
-        case 1:
-            return populationGoal(a);
-            
-            // can probably check for nullptr here, and have a default strategy for the first two nodes.
+            return angleGoal(a, 0, 90);
+        default:
+            return populationGoal(a, 30, 3);
     }
 }
 
-vector<shared_ptr<Road>> ofxProceduralRoads::rightAngleGoal(shared_ptr<Road> a){
+vector<shared_ptr<Road>> ofxProceduralRoads::angleGoal(shared_ptr<Road> a, float range, float tendency){
     vector<shared_ptr<Road>> t_priority;
     
     int max_goals = 2;
-    float range = 0;
-    float tendency = 90;
     
     (placed_list.size() < road_limit) ? max_goals = 2 : max_goals = 0;
     
-    std::array<int,4> quadrants {1,2,3,4};
+    std::array<int,4> quadrants {1,2,3,4}; // i dont think it should be 4
     
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     std::shuffle(quadrants.begin(), quadrants.end(), std::default_random_engine(seed));
@@ -210,13 +243,16 @@ vector<shared_ptr<Road>> ofxProceduralRoads::rightAngleGoal(shared_ptr<Road> a){
             ofVec3f end = a->node + (new_direction * road_scalar);
             
             shared_ptr<Road> new_road = make_shared<Road>(a->time_delay + 1, a, end);
+            
             t_priority.push_back(new_road);
+            
         }else{ // define default point
             new_direction = ofVec3f(ofRandom(-1,1),ofRandom(-1,1),0).normalize();
             
             ofVec3f end = a->node + (new_direction * road_scalar);
             
             shared_ptr<Road> new_road = make_shared<Road>(a->time_delay + 1, a, end);
+            
             t_priority.push_back(new_road);
             
             break;
@@ -226,11 +262,9 @@ vector<shared_ptr<Road>> ofxProceduralRoads::rightAngleGoal(shared_ptr<Road> a){
     return t_priority;
 }
 
-vector<shared_ptr<Road>> ofxProceduralRoads::populationGoal(shared_ptr<Road> a){
+vector<shared_ptr<Road>> ofxProceduralRoads::populationGoal(shared_ptr<Road> a, float range, int numRays){
     vector<shared_ptr<Road>> t_priority;
     
-    float range = 30;
-    int numRays = 3;
     int numSample = 3;
     int max_goals = 2;
     
@@ -291,24 +325,33 @@ vector<shared_ptr<Road>> ofxProceduralRoads::populationGoal(shared_ptr<Road> a){
 
 void ofxProceduralRoads::draw(bool debug){
     ofSetColor(ofColor(255,255,255));
+    
+    int it = 0; // for debugging
     for(auto r : placed_list){
+        
         if(r->time_delay < city->global_walk){
-            r->line.draw();
+            if(r->prev != nullptr){
+                ofDrawLine(r->prev->node, r->node);
+            }
+            
+            ofDrawBitmapString(ofToString(it), r->node);
         }
+        it++;
         
         int selection_rng = 4;
         if((ofGetMouseX() < (r->node.x + selection_rng)) && (ofGetMouseX() > (r->node.x - selection_rng))
            && (ofGetMouseY() < (r->node.y + selection_rng)) && (ofGetMouseY() > (r->node.y - selection_rng))){
             for(auto sib : r->siblings){
                 ofSetColor(ofColor(255,165,0)); // ORANGE
-                ofSetLineWidth(3);
+                ofSetLineWidth(8);
                 ofDrawArrow(r->node, sib->node);
             }
             if(r->prev != nullptr){
                 ofSetColor(ofColor(148,0,211)); // PURPLE
+                ofSetLineWidth(3);
                 ofDrawArrow(r->node, r->prev->node);
             }
-            ofSetLineWidth(1);
+            ofSetLineWidth(2);
             ofSetColor(ofColor(255,255,255));
         }
     }

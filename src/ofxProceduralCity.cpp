@@ -19,6 +19,7 @@ void ofxProceduralCity::setup(){
     elevation_map.invert();
     
     roads.setup();
+//    buildings.setup(&roads);
 }
 
 void ofxProceduralCity::draw(){

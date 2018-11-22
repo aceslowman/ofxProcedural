@@ -49,6 +49,10 @@ void ofApp::draw(){
         ofDrawGrid(city.map_size/10.0f, 10, false, false, false, true);
     }
     
+    glPointSize(10);
+    city.buildings.draw();
+    glPointSize(2);
+    
     cam.end();
 
     if(drawPop){
