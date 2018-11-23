@@ -82,15 +82,17 @@ void ofxProceduralRoads::generate(){
 
 bool ofxProceduralRoads::localConstraints(shared_ptr<Road> a){
     bool crossings = checkForCrossings(a, 10);
-    bool nearby = checkForDuplicates(a, 10);
     
-    return crossings && nearby;
+    if(!crossings){
+        return checkForDuplicates(a, 10);
+    }
+    
+    return crossings;
 }
 
 bool ofxProceduralRoads::checkForCrossings(shared_ptr<Road> a, float tolerance){
     vector<Crossing> crossings;
 
-    //because of 'checkForDuplicates', placed_list doesn't actually hold ALL placed roads...
     for(auto b : placed_list){
         if (b->prev == nullptr || a->prev->node == b->prev->node || a->prev->node == b->node) { continue; }
         
@@ -112,24 +114,27 @@ bool ofxProceduralRoads::checkForCrossings(shared_ptr<Road> a, float tolerance){
         });
         
         Crossing match = crossings.front();
-
-        /*
-            I don't want A to be added as a sibling to ANYONE until the point has been approved.
-            Should I dedupe here?
-         */
-        
         a->node = match.location;
-        a->siblings.push_back(match.b);
-        a->siblings.push_back(match.c);
-        match.b->siblings.push_back(a); //!!!
-        match.c->siblings.push_back(a); //!!!
-        match.b->siblings.erase(std::remove(match.b->siblings.begin(), match.b->siblings.end(), match.c), match.b->siblings.end()); // b should not have the sibling of c
-        match.c->siblings.erase(std::remove(match.c->siblings.begin(), match.c->siblings.end(), match.b), match.c->siblings.end()); // c should not have the sibling of b
         
-        crossing_list.push_back(match.location);
+        bool dupes = checkForDuplicates(a, tolerance);
+
+        if(dupes){
+            a->siblings.push_back(match.b);
+            a->siblings.push_back(match.c);
+            match.b->siblings.push_back(a); //!!!
+            match.c->siblings.push_back(a); //!!!
+            match.b->siblings.erase(std::remove(match.b->siblings.begin(), match.b->siblings.end(), match.c), match.b->siblings.end()); // b should not have the sibling of c
+            match.c->siblings.erase(std::remove(match.c->siblings.begin(), match.c->siblings.end(), match.b), match.c->siblings.end()); // c should not have the sibling of b
+            
+            crossing_list.push_back(match.location);
+            
+            return true;
+        }else{
+            return false;
+        }
     }
     
-    return true;
+    return false;
 }
 
 bool ofxProceduralRoads::checkForDuplicates(shared_ptr<Road> a, float tolerance){
@@ -142,7 +147,6 @@ bool ofxProceduralRoads::checkForDuplicates(shared_ptr<Road> a, float tolerance)
             
             a->node = b->node;
             
-            checkForCrossings(a, tolerance);
             b->siblings.push_back(a->prev);
         }
     }
