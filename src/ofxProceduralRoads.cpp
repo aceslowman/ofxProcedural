@@ -23,8 +23,8 @@ void ofxProceduralRoads::reset(){
 
 void ofxProceduralRoads::setup(){
     city->global_walk = 50;
-    road_limit = 500;
-    road_scalar = city->map_size/10.0f;
+    road_limit = 1000;
+    road_scalar = city->map_size/15.0f;
     
     generate();
     
@@ -60,13 +60,12 @@ void ofxProceduralRoads::generate(){
         if(accepted){
             if(a->prev != nullptr){
                 a->prev->siblings.push_back(a);
-//                a->siblings.push_back(a->prev);
             }
             
             placed_list.push_back(a);
             pending_list.erase(pending_list.begin());
             
-            int mode = 0;
+            int mode = 1;
             
             for(auto i : globalGoals(a, mode)){
                 pending_list.push_back(i);
@@ -91,6 +90,7 @@ bool ofxProceduralRoads::localConstraints(shared_ptr<Road> a){
 bool ofxProceduralRoads::checkForCrossings(shared_ptr<Road> a, float tolerance){
     vector<Crossing> crossings;
 
+    //because of 'checkForDuplicates', placed_list doesn't actually hold ALL placed roads...
     for(auto b : placed_list){
         if (b->prev == nullptr || a->prev->node == b->prev->node || a->prev->node == b->node) { continue; }
         
@@ -112,12 +112,19 @@ bool ofxProceduralRoads::checkForCrossings(shared_ptr<Road> a, float tolerance){
         });
         
         Crossing match = crossings.front();
+
+        /*
+            I don't want A to be added as a sibling to ANYONE until the point has been approved.
+            Should I dedupe here?
+         */
         
         a->node = match.location;
         a->siblings.push_back(match.b);
         a->siblings.push_back(match.c);
-        match.b->siblings.push_back(a);
-        match.c->siblings.push_back(a);
+        match.b->siblings.push_back(a); //!!!
+        match.c->siblings.push_back(a); //!!!
+        match.b->siblings.erase(std::remove(match.b->siblings.begin(), match.b->siblings.end(), match.c), match.b->siblings.end()); // b should not have the sibling of c
+        match.c->siblings.erase(std::remove(match.c->siblings.begin(), match.c->siblings.end(), match.b), match.c->siblings.end()); // c should not have the sibling of b
         
         crossing_list.push_back(match.location);
     }
@@ -126,15 +133,17 @@ bool ofxProceduralRoads::checkForCrossings(shared_ptr<Road> a, float tolerance){
 }
 
 bool ofxProceduralRoads::checkForDuplicates(shared_ptr<Road> a, float tolerance){
+    /* Problem between this and checkCrossings. For some reason, some interesections are not properly recognized. I suspect sibling relationships...*/
     bool close_to_node = false;
     
     for(auto b : placed_list){
-        if(a->node.distance(b->node) < tolerance){
+        if(a->node.distance(b->node) <= tolerance){
             close_to_node = true;
-            b->siblings.push_back(a->prev); // it gets added as a sibling, but siblings don't draw... we draw (prev->node, node)
-            /*
-                is there some method of 'forward drawing'?
-             */
+            
+            a->node = b->node;
+            
+            checkForCrossings(a, tolerance);
+            b->siblings.push_back(a->prev);
         }
     }
     
@@ -264,14 +273,6 @@ void ofxProceduralRoads::draw(bool debug){
     
     int it = 0;
     for(auto r : placed_list){
-        
-//        if(r->time_delay < city->global_walk){
-//            if(r->prev != nullptr){
-//                ofDrawLine(r->prev->node, r->node);
-//            }
-//
-//            ofDrawBitmapString(ofToString(it), r->node);
-//        }
         if(r->time_delay < city->global_walk){
             for(auto sib : r->siblings){
                 ofDrawLine(r->node, sib->node);
