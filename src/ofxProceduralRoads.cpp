@@ -272,52 +272,75 @@ vector<shared_ptr<Road>> ofxProceduralRoads::populationGoal(shared_ptr<Road> a, 
 //  Drawing
 //-----------------------------------------------------------------------------
 
-void ofxProceduralRoads::draw(bool debug){
+void ofxProceduralRoads::draw(){
+    glPointSize(1);
     ofSetColor(ofColor(255,255,255));
-    
-    int it = 0;
+
     for(auto r : placed_list){
         if(r->time_delay < city->global_walk){
             for(auto sib : r->siblings){
                 ofDrawLine(r->node, sib->node);
             }
         }
-        ofDrawBitmapString(ofToString(it), r->node);
-        it++;
-        
-        int selection_rng = 4;
-        if((ofGetMouseX() < (r->node.x + selection_rng)) && (ofGetMouseX() > (r->node.x - selection_rng))
-           && (ofGetMouseY() < (r->node.y + selection_rng)) && (ofGetMouseY() > (r->node.y - selection_rng))){
-            for(auto sib : r->siblings){
-                ofSetColor(ofColor(255,165,0)); // ORANGE
-                ofSetLineWidth(8);
-                ofDrawArrow(r->node, sib->node);
+    }
+}
+
+void ofxProceduralRoads::drawDebug(ofEasyCam* cam, ofVec3f mouse, bool numbers){
+    glPointSize(5);
+    cam->begin();
+    
+    ofSetColor(ofColor(255,255,255));
+    
+    int it = 0;
+    for(auto r : placed_list){
+        float nearestDistance = 0;
+        ofVec2f nearestVertex;
+        ofVec3f cur = cam->worldToScreen(r->node);
+        float distance = cur.distance(mouse);
+        if(r->prev != nullptr || distance < nearestDistance){
+            nearestDistance = distance;
+            nearestVertex = cur;
+            
+            int selection_rng = 4;
+            if(nearestDistance < selection_rng){
+                for(auto sib : r->siblings){
+                    ofSetColor(ofColor(255,165,0,180)); // ORANGE
+                    ofSetLineWidth(8);
+                    ofDrawArrow(r->node, sib->node);
+                }
+                if(r->prev != nullptr){
+                    ofSetColor(ofColor(148,0,211,180)); // PURPLE
+                    ofSetLineWidth(3);
+                    ofDrawArrow(r->node, r->prev->node);
+                }
+                ofSetLineWidth(2);
+                ofSetColor(ofColor(255,255,255));
             }
-            if(r->prev != nullptr){
-                ofSetColor(ofColor(148,0,211)); // PURPLE
-                ofSetLineWidth(3);
-                ofDrawArrow(r->node, r->prev->node);
-            }
-            ofSetLineWidth(2);
-            ofSetColor(ofColor(255,255,255));
         }
+        
+        if(numbers){
+            ofDrawBitmapString(ofToString(it), r->node);
+        }
+        
+        it++;
     }
     
-    if(debug){
-        glPointSize(5);
-        ofSetColor(ofColor(0,255,0));
-        mesh.draw();
-        glPointSize(2);
-        ofSetColor(ofColor(255,0,0));
-        crossingMesh.draw();
-        ofSetColor(ofColor(255,255,255));
-        
-        ofSetColor(ofColor(0));
-        ofDrawRectangle(0,0,200,30);
-        ofSetColor(ofColor(255));
-        ofDrawBitmapString("Total Nodes: " + ofToString(placed_list.size()), 10, 10);
-        ofDrawBitmapString("Global Walk: " + ofToString(city->global_walk), 10, 25);
-    }
+
+    glPointSize(7);
+    ofSetColor(ofColor(0,255,0));
+    mesh.draw();
+    glPointSize(5);
+    ofSetColor(ofColor(255,0,0));
+    crossingMesh.draw();
+    ofSetColor(ofColor(255,255,255));
+    
+    cam->end();
+    
+    ofSetColor(ofColor(0));
+    ofDrawRectangle(0,0,200,30);
+    ofSetColor(ofColor(255));
+    ofDrawBitmapString("Total Nodes: " + ofToString(placed_list.size()), 10, 10);
+    ofDrawBitmapString("Global Walk: " + ofToString(city->global_walk), 10, 25);
 }
 
 //-----------------------------------------------------------------------------

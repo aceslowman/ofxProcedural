@@ -21,6 +21,8 @@ void ofApp::setup(){
     
     drawElev = false;
     drawPop = true;
+    
+    show_numbers = false;
 }
 
 //--------------------------------------------------------------
@@ -41,8 +43,6 @@ void ofApp::draw(){
             city.elevation_map.draw();
         }
     }
-    
-    city.roads.draw(debug);
 
     if(debug){
         ofSetColor(ofColor(0,0,255,100));
@@ -53,7 +53,11 @@ void ofApp::draw(){
     city.buildings.draw();
     glPointSize(2);
     
+    city.roads.draw();
+    
     cam.end();
+    
+    city.roads.drawDebug(&cam, ofVec2f(mouseX, mouseY), show_numbers);
 
     if(drawPop){
         ofSetColor(ofColor(0));
@@ -72,6 +76,9 @@ void ofApp::draw(){
 void ofApp::keyPressed(int key){
     if(key == 'd'){
         debug = !debug;
+    }
+    if(key == 'i'){
+        show_numbers = !show_numbers;
     }
     if(key == '-' && city.global_walk != 0){
         city.global_walk--;

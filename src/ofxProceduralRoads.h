@@ -49,7 +49,8 @@ public:
     void reset();
     void setup();
     void generate();
-    void draw(bool debug);
+    void draw();
+    void drawDebug(ofEasyCam* cam, ofVec3f mouse, bool numbers);
     
     static bool sortByDelay(shared_ptr<Road> A, shared_ptr<Road> B);
     
