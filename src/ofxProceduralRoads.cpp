@@ -6,6 +6,17 @@
 #include <random>       // std::default_random_engine
 #include <chrono>       // std::chrono::system_clock
 
+
+void Road::addSibling(shared_ptr<Road> r){
+    this->siblings.push_back(r);
+}
+
+void Road::removeSibling(shared_ptr<Road> r){
+    ofLog(OF_LOG_NOTICE, "There are: " + ofToString(this->siblings.size()));
+    this->siblings.erase(std::remove(this->siblings.begin(), this->siblings.end(), r), this->siblings.end());
+    ofLog(OF_LOG_NOTICE, "After remove there are: " + ofToString(this->siblings.size()));
+}
+
 //-----------------------------------------------------------------------------
 //  Setup
 //-----------------------------------------------------------------------------
@@ -14,6 +25,7 @@ void ofxProceduralRoads::reset(){
     pending_list.clear();
     placed_list.clear();
     crossing_list.clear();
+    duplicate_list.clear();
     
     mesh.clear();
     crossingMesh.clear();
@@ -30,6 +42,7 @@ void ofxProceduralRoads::setup(){
     
     mesh.setMode(OF_PRIMITIVE_POINTS);
     crossingMesh.setMode(OF_PRIMITIVE_POINTS);
+    duplicateMesh.setMode(OF_PRIMITIVE_POINTS);
     
     for(auto &r : placed_list){
         mesh.addVertex(r->node);
@@ -37,6 +50,10 @@ void ofxProceduralRoads::setup(){
     
     for(auto &i : crossing_list){
         crossingMesh.addVertex(i);
+    }
+    
+    for(auto &i : duplicate_list){
+        duplicateMesh.addVertex(i);
     }
 }
 
@@ -59,7 +76,7 @@ void ofxProceduralRoads::generate(){
         
         if(accepted){
             if(a->prev != nullptr){
-                a->prev->siblings.push_back(a);
+                a->prev->addSibling(a);
             }
             
             placed_list.push_back(a);
@@ -87,7 +104,7 @@ bool ofxProceduralRoads::localConstraints(shared_ptr<Road> a){
         return checkForDuplicates(a, 10);
     }
     
-    return crossings;
+    return true;
 }
 
 bool ofxProceduralRoads::checkForCrossings(shared_ptr<Road> a, float tolerance){
@@ -110,26 +127,33 @@ bool ofxProceduralRoads::checkForCrossings(shared_ptr<Road> a, float tolerance){
     
     if(crossings.size() > 0){
         std::sort(crossings.begin(), crossings.end(), [&](Crossing A, Crossing B){
-            return (a->node.distance(A.location) > a->node.distance(B.location));
+            return (a->node.distance(A.location) < a->node.distance(B.location));
         });
         
         Crossing match = crossings.front();
         a->node = match.location;
         
-        bool dupes = checkForDuplicates(a, tolerance);
+        
+        bool ok = checkForDuplicates(a, tolerance);
 
-        if(dupes){
-            a->siblings.push_back(match.b);
-            a->siblings.push_back(match.c);
-            match.b->siblings.push_back(a); //!!!
-            match.c->siblings.push_back(a); //!!!
-            match.b->siblings.erase(std::remove(match.b->siblings.begin(), match.b->siblings.end(), match.c), match.b->siblings.end()); // b should not have the sibling of c
-            match.c->siblings.erase(std::remove(match.c->siblings.begin(), match.c->siblings.end(), match.b), match.c->siblings.end()); // c should not have the sibling of b
+        if(ok){ // finalize that point! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+            // ROADS THAT ARE ENTERED AS SIBLINGS ALSO MUST BE IN PLACED LIST
+//            match.c->removeSibling(match.b);
+//
+//            match.c->addSibling(a);
+////            a->addSibling(match.c);
+//            a->prev = match.c;
+//            a->addSibling(a->prev);
+//
+//            match.b->addSibling(a);
+//            a->addSibling(match.b);
             
             crossing_list.push_back(match.location);
             
             return true;
         }else{
+            //there was a duplicate, removing
             return false;
         }
     }
@@ -138,20 +162,24 @@ bool ofxProceduralRoads::checkForCrossings(shared_ptr<Road> a, float tolerance){
 }
 
 bool ofxProceduralRoads::checkForDuplicates(shared_ptr<Road> a, float tolerance){
-    /* Problem between this and checkCrossings. For some reason, some interesections are not properly recognized. I suspect sibling relationships...*/
-    bool close_to_node = false;
+    bool ok = true;
     
     for(auto b : placed_list){
         if(a->node.distance(b->node) <= tolerance){
-            close_to_node = true;
-            
             a->node = b->node;
+//
+//            b->addSibling(a->prev);
+//            a->prev->addSibling(b);
             
-            b->siblings.push_back(a->prev);
+            ok = false;
+            
+            duplicate_list.push_back(a->node);
+            
+            break;
         }
     }
     
-    return !close_to_node;
+    return ok;
 }
 
 //-----------------------------------------------------------------------------
@@ -191,18 +219,20 @@ vector<shared_ptr<Road>> ofxProceduralRoads::angleGoal(shared_ptr<Road> a, float
             
             ofVec3f end = a->node + (new_direction * road_scalar);
             
-            shared_ptr<Road> new_road = make_shared<Road>(a->time_delay + 1, a, end);
-            
-            t_priority.push_back(new_road);
+            if(city->globalBoundsCheck(end)){
+                shared_ptr<Road> new_road = make_shared<Road>(a->time_delay + 1, a, end);
+                t_priority.push_back(new_road);
+            }
             
         }else{ // define default point
             new_direction = ofVec3f(ofRandom(-1,1),ofRandom(-1,1),0).normalize();
             
             ofVec3f end = a->node + (new_direction * road_scalar);
             
-            shared_ptr<Road> new_road = make_shared<Road>(a->time_delay + 1, a, end);
-            
-            t_priority.push_back(new_road);
+            if(city->globalBoundsCheck(end)){
+                shared_ptr<Road> new_road = make_shared<Road>(a->time_delay + 1, a, end);
+                t_priority.push_back(new_road);
+            }
             
             break;
         }
@@ -254,14 +284,18 @@ vector<shared_ptr<Road>> ofxProceduralRoads::populationGoal(shared_ptr<Road> a, 
             
             ofVec3f end = t_ray.getPointAtIndexInterpolated(1);
             
-            shared_ptr<Road> new_road = make_shared<Road>(a->time_delay + 1, a, end);
-            t_priority.push_back(new_road);
+            if(city->globalBoundsCheck(end)){
+                shared_ptr<Road> new_road = make_shared<Road>(a->time_delay + 1, a, end);
+                t_priority.push_back(new_road);
+            }
         }else{
             ofVec3f new_direction = ofVec3f(ofRandom(-1,1),ofRandom(-1,1),0);
             ofVec3f end = a->node + (new_direction * road_scalar);
             
-            shared_ptr<Road> new_road = make_shared<Road>(a->time_delay + 1, a, end);
-            t_priority.push_back(new_road);
+            if(city->globalBoundsCheck(end)){
+                shared_ptr<Road> new_road = make_shared<Road>(a->time_delay + 1, a, end);
+                t_priority.push_back(new_road);
+            }
         }
     }
     
@@ -326,11 +360,15 @@ void ofxProceduralRoads::drawDebug(ofEasyCam* cam, ofVec3f mouse, bool numbers){
     }
     
 
-    glPointSize(7);
+    glPointSize(9);
     ofSetColor(ofColor(0,255,0));
     mesh.draw();
-    glPointSize(5);
+    glPointSize(8);
     ofSetColor(ofColor(255,0,0));
+    crossingMesh.draw();
+    ofSetColor(ofColor(255,255,255));
+    glPointSize(5);
+    ofSetColor(ofColor(0,0,255));
     crossingMesh.draw();
     ofSetColor(ofColor(255,255,255));
     

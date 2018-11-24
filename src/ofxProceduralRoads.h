@@ -9,6 +9,9 @@ struct Road {
     
     float time_delay;
     
+    void addSibling(shared_ptr<Road> r);
+    void removeSibling(shared_ptr<Road> r);
+    
     Road(float _time_delay, shared_ptr<Road> _prev, ofVec3f _node): time_delay(_time_delay), prev(_prev), node(_node){};
     
 //    ~Road();
@@ -40,10 +43,10 @@ private:
     
     vector<shared_ptr<Road>> pending_list; //use lists?
     
-    vector<ofVec3f> crossing_list;
+    vector<ofVec3f> crossing_list, duplicate_list;
     
     ofMesh mesh;
-    ofMesh crossingMesh;
+    ofMesh crossingMesh, duplicateMesh;
     
 public:
     void reset();
