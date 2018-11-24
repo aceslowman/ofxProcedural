@@ -59,17 +59,17 @@ void ofApp::draw(){
     
     city.roads.drawDebug(&cam, ofVec2f(mouseX, mouseY), show_numbers);
 
-    if(drawPop){
-        ofSetColor(ofColor(0));
-        ofDrawRectangle(0,ofGetHeight()-20,200,ofGetHeight());
-        ofSetColor(ofColor(255));
-        ofDrawBitmapString("(1) Population",10,ofGetHeight()-6);
-    }else if(drawElev){
-        ofSetColor(ofColor(0));
-        ofDrawRectangle(0,ofGetHeight()-20,200,ofGetHeight());
-        ofSetColor(ofColor(255));
-        ofDrawBitmapString("(2) Elevation",10,ofGetHeight()-6);
-    }
+//    if(drawPop){
+//        ofSetColor(ofColor(0));
+//        ofDrawRectangle(0,ofGetHeight()-20,200,ofGetHeight());
+//        ofSetColor(ofColor(255));
+//        ofDrawBitmapString("(1) Population",10,ofGetHeight()-6);
+//    }else if(drawElev){
+//        ofSetColor(ofColor(0));
+//        ofDrawRectangle(0,ofGetHeight()-20,200,ofGetHeight());
+//        ofSetColor(ofColor(255));
+//        ofDrawBitmapString("(2) Elevation",10,ofGetHeight()-6);
+//    }
 }
 
 //--------------------------------------------------------------

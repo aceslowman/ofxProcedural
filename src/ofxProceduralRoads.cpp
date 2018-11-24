@@ -12,9 +12,7 @@ void Road::addSibling(shared_ptr<Road> r){
 }
 
 void Road::removeSibling(shared_ptr<Road> r){
-    ofLog(OF_LOG_NOTICE, "There are: " + ofToString(this->siblings.size()));
     this->siblings.erase(std::remove(this->siblings.begin(), this->siblings.end(), r), this->siblings.end());
-    ofLog(OF_LOG_NOTICE, "After remove there are: " + ofToString(this->siblings.size()));
 }
 
 //-----------------------------------------------------------------------------
@@ -29,14 +27,15 @@ void ofxProceduralRoads::reset(){
     
     mesh.clear();
     crossingMesh.clear();
+    duplicateMesh.clear();
     
     setup();
 }
 
 void ofxProceduralRoads::setup(){
     city->global_walk = 50;
-    road_limit = 1000;
-    road_scalar = city->map_size/15.0f;
+    road_limit = 100;
+    road_scalar = city->map_size/10.0f;
     
     generate();
     
@@ -69,14 +68,12 @@ void ofxProceduralRoads::generate(){
         std::sort (pending_list.begin(), pending_list.end(), sortByDelay);
         shared_ptr<Road> a = pending_list.front();
         
-        bool accepted = true;
-        if(a->prev != nullptr){
-            accepted = localConstraints(a);
-        }
+        bool accepted = localConstraints(a);
         
         if(accepted){
             if(a->prev != nullptr){
                 a->prev->addSibling(a);
+                a->addSibling(a->prev); // all nodes should be siblings (there can be an implied prev for preventing duplication)
             }
             
             placed_list.push_back(a);
@@ -98,20 +95,20 @@ void ofxProceduralRoads::generate(){
 //-----------------------------------------------------------------------------
 
 bool ofxProceduralRoads::localConstraints(shared_ptr<Road> a){
+    if(a->prev == nullptr){ return true; }
+    
     bool crossings = checkForCrossings(a, 10);
+    bool dedupe = checkForDuplicates(a, 10);
+//    bool dedupe = true;
     
-    if(!crossings){
-        return checkForDuplicates(a, 10);
-    }
-    
-    return true;
+    return dedupe;
 }
 
 bool ofxProceduralRoads::checkForCrossings(shared_ptr<Road> a, float tolerance){
     vector<Crossing> crossings;
 
     for(auto b : placed_list){
-        if (b->prev == nullptr || a->prev->node == b->prev->node || a->prev->node == b->node) { continue; }
+        if (a->prev == nullptr || b->prev == nullptr || a->prev->node == b->prev->node || a->prev->node == b->node) { continue; }
         
         ofVec2f crossing;
         
@@ -127,56 +124,59 @@ bool ofxProceduralRoads::checkForCrossings(shared_ptr<Road> a, float tolerance){
     
     if(crossings.size() > 0){
         std::sort(crossings.begin(), crossings.end(), [&](Crossing A, Crossing B){
-            return (a->node.distance(A.location) < a->node.distance(B.location));
+            return (a->prev->node.distance(A.location) < a->prev->node.distance(B.location));
         });
         
         Crossing match = crossings.front();
+        crossing_list.push_back(match.location);
+
         a->node = match.location;
-        
-        
-        bool ok = checkForDuplicates(a, tolerance);
+        match.c->removeSibling(match.b);
+        a->addSibling(match.c);
+        a->addSibling(match.b);
+        match.b->addSibling(a);
+        match.c->addSibling(a);
 
-        if(ok){ // finalize that point! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-            // ROADS THAT ARE ENTERED AS SIBLINGS ALSO MUST BE IN PLACED LIST
-//            match.c->removeSibling(match.b);
-//
-//            match.c->addSibling(a);
-////            a->addSibling(match.c);
-//            a->prev = match.c;
-//            a->addSibling(a->prev);
-//
-//            match.b->addSibling(a);
-//            a->addSibling(match.b);
-            
-            crossing_list.push_back(match.location);
-            
-            return true;
-        }else{
-            //there was a duplicate, removing
-            return false;
-        }
+        return true;
     }
     
     return false;
 }
 
-bool ofxProceduralRoads::checkForDuplicates(shared_ptr<Road> a, float tolerance){
+bool ofxProceduralRoads::checkForDuplicates(shared_ptr<Road> a, float tolerance){ // prob here
     bool ok = true;
     
+    vector<shared_ptr<Road>> matches;
+    
+    ofLog(OF_LOG_NOTICE, "Single dedupe pass.............................");
     for(auto b : placed_list){
         if(a->node.distance(b->node) <= tolerance){
-            a->node = b->node;
-//
-//            b->addSibling(a->prev);
-//            a->prev->addSibling(b);
+            matches.push_back(b);
             
-            ok = false;
-            
-            duplicate_list.push_back(a->node);
-            
-            break;
+            ofLog(OF_LOG_NOTICE, "Dupe found.");
         }
+    }
+    
+    if(matches.size() > 0){ // get closest match (will I still need this>?)
+        std::sort(matches.begin(), matches.end(), [&](shared_ptr<Road> A, shared_ptr<Road> B){
+            return (a->node.distance(A->node) < a->node.distance(B->node));
+        });
+        
+        shared_ptr<Road> match = matches.front();
+        
+        a->node = match->node;
+        
+        checkForCrossings(a, tolerance);
+        
+        a->prev->addSibling(match);
+        
+        for(auto sib : a->siblings){
+            match->addSibling(sib);
+        }
+        
+        duplicate_list.push_back(match->node);
+        
+        ok = false;
     }
     
     return ok;
@@ -307,7 +307,7 @@ vector<shared_ptr<Road>> ofxProceduralRoads::populationGoal(shared_ptr<Road> a, 
 //-----------------------------------------------------------------------------
 
 void ofxProceduralRoads::draw(){
-    glPointSize(1);
+    glLineWidth(2);
     ofSetColor(ofColor(255,255,255));
 
     for(auto r : placed_list){
@@ -360,25 +360,29 @@ void ofxProceduralRoads::drawDebug(ofEasyCam* cam, ofVec3f mouse, bool numbers){
     }
     
 
-    glPointSize(9);
+    glPointSize(10);
+    ofSetColor(ofColor(0,0,255, 100));
+//    duplicateMesh.draw();
+    for(auto d : duplicate_list){
+        ofDrawCircle(d, 10);
+    }
+    glPointSize(6);
     ofSetColor(ofColor(0,255,0));
     mesh.draw();
-    glPointSize(8);
+    glPointSize(3);
     ofSetColor(ofColor(255,0,0));
     crossingMesh.draw();
     ofSetColor(ofColor(255,255,255));
-    glPointSize(5);
-    ofSetColor(ofColor(0,0,255));
-    crossingMesh.draw();
+    
     ofSetColor(ofColor(255,255,255));
     
     cam->end();
     
-    ofSetColor(ofColor(0));
-    ofDrawRectangle(0,0,200,30);
+//    ofSetColor(ofColor(0));
+//    ofDrawRectangle(0,0,200,30);
     ofSetColor(ofColor(255));
-    ofDrawBitmapString("Total Nodes: " + ofToString(placed_list.size()), 10, 10);
-    ofDrawBitmapString("Global Walk: " + ofToString(city->global_walk), 10, 25);
+//    ofDrawBitmapString("Total Nodes: " + ofToString(placed_list.size()), 10, 10);
+//    ofDrawBitmapString("Global Walk: " + ofToString(city->global_walk), 10, 25);
 }
 
 //-----------------------------------------------------------------------------
