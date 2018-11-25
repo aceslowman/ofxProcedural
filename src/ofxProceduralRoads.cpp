@@ -79,7 +79,7 @@ void ofxProceduralRoads::generate(){
             placed_list.push_back(a);
             pending_list.erase(pending_list.begin());
             
-            int mode = 1;
+            int mode = 0;
             
             for(auto i : globalGoals(a, mode)){
                 pending_list.push_back(i);
@@ -97,14 +97,14 @@ void ofxProceduralRoads::generate(){
 bool ofxProceduralRoads::localConstraints(shared_ptr<Road> a){
     if(a->prev == nullptr){ return true; }
     
-    bool crossings = checkForCrossings(a, 10);
-    bool dedupe = checkForDuplicates(a, 10);
+    bool crossings = checkForCrossings(a);
+    bool dedupe = checkForDuplicates(a);
 //    bool dedupe = true;
     
     return dedupe;
 }
 
-bool ofxProceduralRoads::checkForCrossings(shared_ptr<Road> a, float tolerance){
+bool ofxProceduralRoads::checkForCrossings(shared_ptr<Road> a){
     vector<Crossing> crossings;
 
     for(auto b : placed_list){
@@ -143,40 +143,23 @@ bool ofxProceduralRoads::checkForCrossings(shared_ptr<Road> a, float tolerance){
     return false;
 }
 
-bool ofxProceduralRoads::checkForDuplicates(shared_ptr<Road> a, float tolerance){ // prob here
+bool ofxProceduralRoads::checkForDuplicates(shared_ptr<Road> a){ // prob here
     bool ok = true;
-    
-    vector<shared_ptr<Road>> matches;
-    
-    ofLog(OF_LOG_NOTICE, "Single dedupe pass.............................");
+
     for(auto b : placed_list){
-        if(a->node.distance(b->node) <= tolerance){
-            matches.push_back(b);
+        if(a->node.distance(b->node) == 0){
+            a->prev->addSibling(b);
             
-            ofLog(OF_LOG_NOTICE, "Dupe found.");
+            for(auto sib : a->siblings){
+                b->addSibling(sib);
+            }
+            
+            duplicate_list.push_back(b->node);
+            
+            ok = false;
+            
+            break;
         }
-    }
-    
-    if(matches.size() > 0){ // get closest match (will I still need this>?)
-        std::sort(matches.begin(), matches.end(), [&](shared_ptr<Road> A, shared_ptr<Road> B){
-            return (a->node.distance(A->node) < a->node.distance(B->node));
-        });
-        
-        shared_ptr<Road> match = matches.front();
-        
-        a->node = match->node;
-        
-        checkForCrossings(a, tolerance);
-        
-        a->prev->addSibling(match);
-        
-        for(auto sib : a->siblings){
-            match->addSibling(sib);
-        }
-        
-        duplicate_list.push_back(match->node);
-        
-        ok = false;
     }
     
     return ok;
@@ -362,10 +345,10 @@ void ofxProceduralRoads::drawDebug(ofEasyCam* cam, ofVec3f mouse, bool numbers){
 
     glPointSize(10);
     ofSetColor(ofColor(0,0,255, 100));
-//    duplicateMesh.draw();
-    for(auto d : duplicate_list){
-        ofDrawCircle(d, 10);
-    }
+    duplicateMesh.draw();
+//    for(auto d : duplicate_list){
+//        ofDrawCircle(d, 5);
+//    }
     glPointSize(6);
     ofSetColor(ofColor(0,255,0));
     mesh.draw();

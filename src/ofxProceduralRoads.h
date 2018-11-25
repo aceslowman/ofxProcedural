@@ -34,8 +34,8 @@ private:
     ofxProceduralCity *city;
 
     bool localConstraints(shared_ptr<Road> a);
-    bool checkForCrossings(shared_ptr<Road> a, float tolerance);
-    bool checkForDuplicates(shared_ptr<Road> a, float tolerance);
+    bool checkForCrossings(shared_ptr<Road> a);
+    bool checkForDuplicates(shared_ptr<Road> a);
     
     vector<shared_ptr<Road>> globalGoals(shared_ptr<Road> a, int mode);
     vector<shared_ptr<Road>> angleGoal(shared_ptr<Road> a, float range, float tendency);
