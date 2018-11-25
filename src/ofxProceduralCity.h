@@ -4,6 +4,7 @@
 #include "ofxProceduralMap.h"
 #include "ofxProceduralRoads.h"
 #include "ofxProceduralBuildings.h"
+#include "ofxProceduralTerrain.h"
 
 class ofxProceduralCity {
     
@@ -15,6 +16,7 @@ public:
     
     ofxProceduralRoads roads;
     ofxProceduralBuildings buildings;
+    ofxProceduralTerrain terrain;
     
     bool globalBoundsCheck(ofVec3f &a);
     
@@ -25,7 +27,7 @@ public:
     int map_size;
     int global_walk;
     
-    ofxProceduralCity() : roads(this), buildings(this){}
+    ofxProceduralCity() : roads(this), buildings(this), terrain(this){}
 };
 
 /*

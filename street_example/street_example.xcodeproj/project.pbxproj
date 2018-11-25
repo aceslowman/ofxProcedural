@@ -21,6 +21,7 @@
 		9D44DC88EF9E7991B4A09951 /* tinyxmlerror.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 832BDC407620CDBA568B713D /* tinyxmlerror.cpp */; };
 		B266578FC55D23BFEBC042E7 /* ofxGuiGroup.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ECF8674C7975F1063C5E30CA /* ofxGuiGroup.cpp */; };
 		B56FE57CC35806596D38118C /* ofxSliderGroup.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 802251BAF1B35B1D67B32FD0 /* ofxSliderGroup.cpp */; };
+		D949653321AA3F7B00219E1E /* ofxProceduralTerrain.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D949653121AA3F7B00219E1E /* ofxProceduralTerrain.cpp */; };
 		D96A2C39219F3C890056CC73 /* ofxProceduralRoads.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D96A2C33219F3C880056CC73 /* ofxProceduralRoads.cpp */; };
 		D96A2C3A219F3C890056CC73 /* ofxProceduralMap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D96A2C36219F3C880056CC73 /* ofxProceduralMap.cpp */; };
 		D96A2C3B219F3C890056CC73 /* ofxProceduralBuildings.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D96A2C38219F3C890056CC73 /* ofxProceduralBuildings.cpp */; };
@@ -68,6 +69,8 @@
 		B87C60311EC1FE841C1ECD89 /* ofxLabel.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = ofxLabel.h; path = ../../../addons/ofxGui/src/ofxLabel.h; sourceTree = SOURCE_ROOT; };
 		C70D8946940288799E82131E /* ofxSliderGroup.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = ofxSliderGroup.h; path = ../../../addons/ofxGui/src/ofxSliderGroup.h; sourceTree = SOURCE_ROOT; };
 		C88333E71C9457E441C33474 /* ofxButton.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = ofxButton.cpp; path = ../../../addons/ofxGui/src/ofxButton.cpp; sourceTree = SOURCE_ROOT; };
+		D949653121AA3F7B00219E1E /* ofxProceduralTerrain.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ofxProceduralTerrain.cpp; path = ../src/ofxProceduralTerrain.cpp; sourceTree = "<group>"; };
+		D949653221AA3F7B00219E1E /* ofxProceduralTerrain.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ofxProceduralTerrain.h; path = ../src/ofxProceduralTerrain.h; sourceTree = "<group>"; };
 		D96A2C33219F3C880056CC73 /* ofxProceduralRoads.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ofxProceduralRoads.cpp; path = ../src/ofxProceduralRoads.cpp; sourceTree = "<group>"; };
 		D96A2C34219F3C880056CC73 /* ofxProceduralRoads.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ofxProceduralRoads.h; path = ../src/ofxProceduralRoads.h; sourceTree = "<group>"; };
 		D96A2C35219F3C880056CC73 /* ofxProceduralBuildings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ofxProceduralBuildings.h; path = ../src/ofxProceduralBuildings.h; sourceTree = "<group>"; };
@@ -372,6 +375,8 @@
 				D96A2C34219F3C880056CC73 /* ofxProceduralRoads.h */,
 				4399261BB1A532F3644F0A20 /* ofxProceduralCity.cpp */,
 				69106408A73C09EA40CF8D5A /* ofxProceduralCity.h */,
+				D949653121AA3F7B00219E1E /* ofxProceduralTerrain.cpp */,
+				D949653221AA3F7B00219E1E /* ofxProceduralTerrain.h */,
 			);
 			name = src;
 			sourceTree = "<group>";
@@ -790,6 +795,7 @@
 				852E0891794923EE7583C621 /* ofxInputField.cpp in Sources */,
 				D96A2C3A219F3C890056CC73 /* ofxProceduralMap.cpp in Sources */,
 				483908258D00B98B4BE69F07 /* ofxLabel.cpp in Sources */,
+				D949653321AA3F7B00219E1E /* ofxProceduralTerrain.cpp in Sources */,
 				F285EB3169F1566CA3D93C20 /* ofxPanel.cpp in Sources */,
 				837220E80EB56CD44AD27F2A /* ofxSlider.cpp in Sources */,
 				B56FE57CC35806596D38118C /* ofxSliderGroup.cpp in Sources */,

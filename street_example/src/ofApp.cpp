@@ -7,17 +7,7 @@ void ofApp::setup(){
     city.setup();
     
     
-    cam.removeAllInteractions();
-    cam.addInteraction(ofEasyCam::TRANSFORM_TRANSLATE_XY,OF_MOUSE_BUTTON_LEFT);
-    cam.addInteraction(ofEasyCam::TRANSFORM_TRANSLATE_Z, OF_MOUSE_BUTTON_RIGHT);
-    
-    cam.enableOrtho();
-    cam.setNearClip(-1000000);
-    cam.setFarClip(1000000);
-    cam.setVFlip(true);
-    cam.setAutoDistance(false);
 
-    cam.setGlobalPosition(city.map_size/2,city.map_size/2,0);
     
     drawElev = false;
     drawPop = true;
@@ -38,9 +28,9 @@ void ofApp::draw(){
     
     if(debug){
         if(drawPop){
-            city.population_map.draw();
+//            city.population_map.draw();
         }else if(drawElev){
-            city.elevation_map.draw();
+//            city.elevation_map.draw();
         }
     }
 
@@ -49,15 +39,17 @@ void ofApp::draw(){
         ofDrawGrid(city.map_size/10.0f, 10, false, false, false, true);
     }
     
-    glPointSize(10);
-    city.buildings.draw();
-    glPointSize(2);
+//    glPointSize(10);
+//    city.buildings.draw();
+//    glPointSize(2);
     
-    city.roads.draw();
+//    city.roads.draw();
+    city.terrain.draw();
     
     cam.end();
     
-    city.roads.drawDebug(&cam, ofVec2f(mouseX, mouseY), show_numbers);
+    city.terrain.drawDebug(&cam);
+//    city.roads.drawDebug(&cam, ofVec2f(mouseX, mouseY), show_numbers);
 
 //    if(drawPop){
 //        ofSetColor(ofColor(0));
@@ -90,13 +82,32 @@ void ofApp::keyPressed(int key){
         cam.setGlobalPosition(city.map_size/2,city.map_size/2,0);
         city.reset();
     }
-    if(key == '1'){
+    if(key == 'z'){
         drawPop = true;
         drawElev = false;
     }
-    if(key == '2'){
+    if(key == 'x'){
         drawPop = false;
         drawElev = true;
+    }
+    
+    
+    if(key == '1'){
+        cam.removeAllInteractions();
+        cam.addInteraction(ofEasyCam::TRANSFORM_TRANSLATE_XY,OF_MOUSE_BUTTON_LEFT);
+        cam.addInteraction(ofEasyCam::TRANSFORM_TRANSLATE_Z, OF_MOUSE_BUTTON_RIGHT);
+        
+        cam.enableOrtho();
+        cam.setNearClip(-1000000);
+        cam.setFarClip(1000000);
+        cam.setVFlip(true);
+        cam.setAutoDistance(false);
+        
+        cam.setGlobalPosition(city.map_size/2,city.map_size/2,0);
+    }
+    
+    if(key == '2'){
+        
     }
 }
 
