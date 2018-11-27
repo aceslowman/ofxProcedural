@@ -1,5 +1,6 @@
 #pragma once
 #include "ofMain.h"
+#include "ofxGui.h"
 
 struct Road {
     vector<shared_ptr<Road>> siblings;
@@ -60,7 +61,14 @@ public:
     vector<shared_ptr<Road>> placed_list; //use lists?
     
     int road_limit;
-    float road_scalar;
+//    float road_scalar;
+    
+    ofParameterGroup params;
+    ofParameter<float> road_scalar;
+    ofParameter<bool> popGoal;
+    ofParameter<bool> rightGoal;
+    ofParameter<float> mergeRadius;
+    ofParameter<bool> show_dots;
     
     ofxProceduralRoads(ofxProceduralCity *_city): city(_city){};
 };

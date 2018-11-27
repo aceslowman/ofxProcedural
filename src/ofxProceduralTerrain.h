@@ -1,5 +1,6 @@
 #pragma once
 #include "ofMain.h"
+#include "ofxGui.h"
 
 class ofxProceduralCity;
 class ofxProceduralMap;
@@ -20,6 +21,10 @@ public:
     
     void draw();
     void drawDebug(ofEasyCam* cam);
+    
+    ofParameterGroup params;
+    ofParameter<float> zscale;
+    ofParameter<bool> show_elevation;
     
     ofxProceduralTerrain(ofxProceduralCity *_city): city(_city){};
 };

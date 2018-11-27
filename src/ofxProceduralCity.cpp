@@ -2,32 +2,41 @@
 
 void ofxProceduralCity::reset(){
 //    roads.reset();
+    gui.clear();
     setup();
 }
 
 void ofxProceduralCity::setup(){
     global_walk = 0;
-    map_size = 512;
+    dimensions = ofVec2f(512,512);
     
-    ofSetWindowShape(map_size, map_size);
-    ofSetWindowPosition((ofGetScreenWidth() / 2.0)-(map_size/2.0), (ofGetScreenHeight() / 2.0)-(map_size/2.0));
+//    ofSetWindowShape(dimensions.x, dimensions.y);
+//    ofSetWindowPosition((ofGetScreenWidth() / 2.0)-(dimensions.x/2.0), (ofGetScreenHeight() / 2.0)-(dimensions.y/2.0));
     
-    population_map.setup(3, 150, 500, map_size);
-    elevation_map.setup(9, 150, 500, map_size);
+    population_map.setup(3, 150, 500, dimensions);
+    elevation_map.setup(9, 150, 500, dimensions);
     elevation_map.invert();
     
 //    roads.setup();
     terrain.setup(&elevation_map);
 //    buildings.setup(&roads);
+
+    params.setName("Procedural");
+    params.add(regen_all.set("Regenerate", false));
+    regen_all.addListener(this, &ofxProceduralCity::regenClicked);
     
+    gui.setup(params);
+    gui.add(terrain.params);
+    gui.add(elevation_map.params);
+    gui.add(roads.params);
 }
 
 void ofxProceduralCity::draw(){
-    //
+    gui.draw();
 }
 
 bool ofxProceduralCity::globalBoundsCheck(ofVec3f &a){
-    if(a.x >= map_size || a.x <= 0 || a.y >= map_size || a.y <= 0){
+    if(a.x >= dimensions.x || a.x <= 0 || a.y >= dimensions.y || a.y <= 0){
         ofLog(OF_LOG_ERROR, "OUT OF BOUNDS");
         return false;
     }
@@ -78,4 +87,10 @@ namespace proc_utils {
 
 }
 
-
+void ofxProceduralCity::regenClicked(bool &val){
+    if(val){
+        reset();
+        
+        val = false;
+    }
+}

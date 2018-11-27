@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ofMain.h"
+#include "ofxGui.h"
 #include "ofxProceduralMap.h"
 #include "ofxProceduralRoads.h"
 #include "ofxProceduralBuildings.h"
@@ -24,8 +25,14 @@ public:
     void setup();
     void draw();
     
-    int map_size;
+    ofVec2f dimensions;
     int global_walk;
+    
+    ofxPanel gui;
+    ofParameterGroup params;
+    ofParameter<bool> regen_all;
+    
+    void regenClicked(bool &val);
     
     ofxProceduralCity() : roads(this), buildings(this), terrain(this){}
 };

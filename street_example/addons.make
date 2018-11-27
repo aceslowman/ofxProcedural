@@ -1,3 +1,0 @@
-ofxCityGenerator
-ofxGui
-ofxXmlSettings

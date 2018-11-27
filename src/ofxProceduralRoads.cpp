@@ -33,9 +33,16 @@ void ofxProceduralRoads::reset(){
 }
 
 void ofxProceduralRoads::setup(){
+    params.setName("Roads");
+    params.add(road_scalar.set("Road Scalar", city->dimensions.x/10.0f, 1, 100));
+    params.add(popGoal.set("Population", true));
+    params.add(rightGoal.set("Right Angle", false));
+    params.add(mergeRadius.set("Merge Radius", 0.0, 0.0, 50));
+    params.add(show_dots.set("Show Dots", true));
+    
     city->global_walk = 50;
     road_limit = 100;
-    road_scalar = city->map_size/10.0f;
+//    road_scalar = city->dimensions.x/10.0f;
     
     generate();
     
@@ -57,7 +64,7 @@ void ofxProceduralRoads::setup(){
 }
 
 void ofxProceduralRoads::generate(){
-    ofVec3f map_center = ofVec3f(city->map_size/2,city->map_size/2,0);
+    ofVec3f map_center = ofVec3f(city->dimensions.x/2,city->dimensions.x/2,0);
     
     shared_ptr<Road> initial_road = make_shared<Road>(0, nullptr, map_center);
     
