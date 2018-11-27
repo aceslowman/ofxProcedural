@@ -5,6 +5,7 @@ void ofApp::setup(){
     debug = true;
    
     city.setup();
+    city.setupGui();
 
     drawElev = false;
     drawPop = true;
@@ -43,7 +44,7 @@ void ofApp::draw(){
     }
     
     ofDisableDepthTest();
-    city.draw();
+    city.gui.draw();
 }
 
 //--------------------------------------------------------------

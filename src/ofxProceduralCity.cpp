@@ -2,7 +2,6 @@
 
 void ofxProceduralCity::reset(){
 //    roads.reset();
-    gui.clear();
     setup();
 }
 
@@ -20,7 +19,9 @@ void ofxProceduralCity::setup(){
 //    roads.setup();
     terrain.setup(&elevation_map);
 //    buildings.setup(&roads);
+}
 
+void ofxProceduralCity::setupGui(){
     params.setName("Procedural");
     params.add(regen_all.set("Regenerate", false));
     regen_all.addListener(this, &ofxProceduralCity::regenClicked);
@@ -32,7 +33,7 @@ void ofxProceduralCity::setup(){
 }
 
 void ofxProceduralCity::draw(){
-    gui.draw();
+
 }
 
 bool ofxProceduralCity::globalBoundsCheck(ofVec3f &a){

@@ -33,12 +33,6 @@ void ofxProceduralRoads::reset(){
 }
 
 void ofxProceduralRoads::setup(){
-    params.setName("Roads");
-    params.add(road_scalar.set("Road Scalar", city->dimensions.x/10.0f, 1, 100));
-    params.add(popGoal.set("Population", true));
-    params.add(rightGoal.set("Right Angle", false));
-    params.add(mergeRadius.set("Merge Radius", 0.0, 0.0, 50));
-    params.add(show_dots.set("Show Dots", true));
     
     city->global_walk = 50;
     road_limit = 100;

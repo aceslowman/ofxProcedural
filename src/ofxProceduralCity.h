@@ -23,6 +23,7 @@ public:
     
     void reset();
     void setup();
+    void setupGui();
     void draw();
     
     ofVec2f dimensions;

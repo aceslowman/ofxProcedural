@@ -70,5 +70,12 @@ public:
     ofParameter<float> mergeRadius;
     ofParameter<bool> show_dots;
     
-    ofxProceduralRoads(ofxProceduralCity *_city): city(_city){};
+    ofxProceduralRoads(ofxProceduralCity *_city): city(_city){
+        params.setName("Roads");
+        params.add(road_scalar.set("Road Scalar", 50, 1, 100));
+        params.add(popGoal.set("Population", true));
+        params.add(rightGoal.set("Right Angle", false));
+        params.add(mergeRadius.set("Merge Radius", 0.0, 0.0, 50));
+        params.add(show_dots.set("Show Dots", true));
+    };
 };

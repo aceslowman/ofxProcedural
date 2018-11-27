@@ -26,5 +26,9 @@ public:
     ofParameter<float> zscale;
     ofParameter<bool> show_elevation;
     
-    ofxProceduralTerrain(ofxProceduralCity *_city): city(_city){};
+    ofxProceduralTerrain(ofxProceduralCity *_city): city(_city){
+        params.setName("Terrain");
+        params.add(zscale.set("z-scale", 100, 0, 500));
+        params.add(show_elevation.set("Show Elev.", true));
+    };
 };
