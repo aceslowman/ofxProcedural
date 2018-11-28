@@ -18,8 +18,8 @@ void ofxProceduralMap::setup(int _oct, float _amp, float _freq, ofVec2f _size){
 }
 
 void ofxProceduralMap::generate(){
-    pix.allocate(size.x, size.y, OF_PIXELS_GRAY);
-    tex.allocate(size.x, size.y, GL_R16F);//also GL_R32F
+    pix.allocate(size.x, size.y,  OF_PIXELS_GRAY);
+    tex.allocate(size.x, size.y, GL_R16F); //also GL_R32F for much higher precision
     
     ofSeedRandom();
     
@@ -63,5 +63,5 @@ void ofxProceduralMap::draw(){
 }
 
 int ofxProceduralMap::sample(ofVec2f st){
-     return pix.getColor((int)st.x,(int)st.y).r;
+    return pix.getColor(floor(st.x),floor(st.y)).r;
 }

@@ -18,8 +18,8 @@ void ofxProceduralTerrain::setup(ofxProceduralMap *_elevation){
 
 void ofxProceduralTerrain::generate(){
     float detail_level = 1.0; // parameterize
+    mesh = mesh.plane(city->dimensions.x - 1.0, city->dimensions.y - 1.0, city->dimensions.x * detail_level, city->dimensions.y * detail_level, OF_PRIMITIVE_TRIANGLE_FAN);
     
-    mesh = mesh.plane(city->dimensions.x, city->dimensions.y, city->dimensions.x * detail_level, city->dimensions.y * detail_level, OF_PRIMITIVE_TRIANGLE_FAN);
     
     displace();
 }
@@ -27,8 +27,8 @@ void ofxProceduralTerrain::generate(){
 void ofxProceduralTerrain::displace(){
     for(int i = 0; i < mesh.getNumVertices(); i++){
         ofVec3f position = mesh.getVertex(i);
-
-        position.z = elevation->sample(position + (city->dimensions/2.0)); // bug here.
+        
+        position.z = elevation->sample(position + (city->dimensions / 2.0)); // bug here.
         mesh.setVertex(i, position);
         mesh.addTexCoord((ofVec2f)position);
         mesh.addColor(ofColor(position.z));
@@ -40,6 +40,8 @@ void ofxProceduralTerrain::displace(){
 //-----------------------------------------------------------------------------
 
 void ofxProceduralTerrain::draw(){
+    ofDrawCircle(-city->dimensions.x,-city->dimensions.y,0,10);
+    
     if(show_elevation){
         mesh.enableColors();
     }else{
