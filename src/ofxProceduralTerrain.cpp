@@ -11,27 +11,81 @@ void ofxProceduralTerrain::reset(){
 }
 
 void ofxProceduralTerrain::setup(ofxProceduralMap *_elevation){
+    node.setParent(city->node);
     elevation = _elevation;
     
     generate();
 }
 
 void ofxProceduralTerrain::generate(){
-    float detail_level = 1.0; // parameterize
-    mesh = mesh.plane(city->dimensions.x - 1.0, city->dimensions.y - 1.0, city->dimensions.x * detail_level, city->dimensions.y * detail_level, OF_PRIMITIVE_TRIANGLE_FAN);
+    node.setPosition(city->dimensions.x / 2.0, city->dimensions.y / 2.0, 0);
+
+    generatePlane();
+//    mesh = mesh.plane(city->dimensions.x - 1.0, city->dimensions.y - 1.0, city->dimensions.x * detail_level, city->dimensions.y * detail_level, OF_PRIMITIVE_TRIANGLES);
+    //now can I apply the node transformation to the mesh somehow?
     
     
     displace();
+}
+
+void ofxProceduralTerrain::generatePlane(){
+    mesh.setMode(OF_PRIMITIVE_TRIANGLES);
+
+    float width = city->dimensions.x;
+    float height = city->dimensions.y;
+    
+    int rows = city->dimensions.x * detail_level;
+    int columns = city->dimensions.y * detail_level;
+
+    ofVec2f texcoord;
+    ofVec3f vert;
+    ofVec3f normal = ofVec3f(0,1,0); // y is always up
+
+    for(int iy = 0; iy != rows; iy++) {
+        for(int ix = 0; ix != columns; ix++) {
+            
+            // normalized tex coords //
+            texcoord.x =       ((float)ix/((float)columns-1));
+            texcoord.y = 1.f - ((float)iy/((float)rows-1));
+            
+            vert.x = texcoord.x * width;
+            vert.y = -(texcoord.y-1) * height;
+            
+            mesh.addVertex(vert);
+            mesh.addTexCoord(texcoord);
+            mesh.addNormal(normal);
+        }
+    }
+
+    for(int y = 0; y < rows-1; y++) {
+        for(int x = 0; x < columns-1; x++) {
+            // first triangle //
+            mesh.addIndex((y)*columns + x);
+            mesh.addIndex((y)*columns + x+1);
+            mesh.addIndex((y+1)*columns + x);
+            
+            // second triangle //
+            mesh.addIndex((y)*columns + x+1);
+            mesh.addIndex((y+1)*columns + x+1);
+            mesh.addIndex((y+1)*columns + x);
+        }
+    }
 }
 
 void ofxProceduralTerrain::displace(){
     for(int i = 0; i < mesh.getNumVertices(); i++){
         ofVec3f position = mesh.getVertex(i);
         
-        position.z = elevation->sample(position + (city->dimensions / 2.0)); // bug here.
+//        float sample = elevation->sample(position + (city->dimensions / 2.0));
+        float sample = elevation->sample(position);
+        
+        mesh.addColor(ofFloatColor(sample));
+        
+        position.z = sample;
+        position.z *= zscale;
+        
         mesh.setVertex(i, position);
         mesh.addTexCoord((ofVec2f)position);
-        mesh.addColor(ofColor(position.z));
     }
 }
 

@@ -33,6 +33,7 @@ void ofxProceduralRoads::reset(){
 }
 
 void ofxProceduralRoads::setup(){
+    node.setParent(city->node);
     
     city->global_walk = 50;
     road_limit = 100;
@@ -77,10 +78,13 @@ void ofxProceduralRoads::generate(){
                 a->addSibling(a->prev); // all nodes should be siblings (there can be an implied prev for preventing duplication)
             }
             
+//            a->node.z = city->population_map.sample((ofVec2f)a->node);
+            // need to apply elevation using city->terrain!
+            
             placed_list.push_back(a);
             pending_list.erase(pending_list.begin());
             
-            int mode = 0;
+            int mode = 1;
             
             for(auto i : globalGoals(a, mode)){
                 pending_list.push_back(i);
@@ -291,6 +295,7 @@ vector<shared_ptr<Road>> ofxProceduralRoads::populationGoal(shared_ptr<Road> a, 
 //-----------------------------------------------------------------------------
 
 void ofxProceduralRoads::draw(){
+    ofDisableDepthTest();
     glLineWidth(2);
     ofSetColor(ofColor(255,255,255));
 
@@ -301,6 +306,7 @@ void ofxProceduralRoads::draw(){
             }
         }
     }
+    ofEnableDepthTest();
 }
 
 void ofxProceduralRoads::drawDebug(ofEasyCam* cam, ofVec3f mouse, bool numbers){

@@ -63,6 +63,8 @@ public:
     int road_limit;
 //    float road_scalar;
     
+    ofNode node;
+    
     ofParameterGroup params;
     ofParameter<float> road_scalar;
     ofParameter<bool> popGoal;

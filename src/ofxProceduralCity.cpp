@@ -1,7 +1,7 @@
 #include "ofxProceduralCity.h"
 
 void ofxProceduralCity::reset(){
-//    roads.reset();
+    roads.reset();
     setup();
 }
 
@@ -16,7 +16,7 @@ void ofxProceduralCity::setup(){
     elevation_map.setup(9, 150, 500, dimensions);
     elevation_map.invert();
     
-//    roads.setup();
+    roads.setup();
     terrain.setup(&elevation_map);
 //    buildings.setup(&roads);
 }

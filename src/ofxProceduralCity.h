@@ -19,6 +19,8 @@ public:
     ofxProceduralBuildings buildings;
     ofxProceduralTerrain terrain;
     
+    ofNode node;
+    
     bool globalBoundsCheck(ofVec3f &a);
     
     void reset();

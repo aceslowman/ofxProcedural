@@ -37,10 +37,12 @@ void ofApp::draw(){
 
     cam->begin();
         city.terrain.draw();
+        city.roads.draw();
     cam->end();
     
     if(debug){
         city.terrain.drawDebug(cam);
+        city.roads.drawDebug(cam, ofVec2f(ofGetMouseX(), ofGetMouseY()), true);
     }
     
     ofDisableDepthTest();
