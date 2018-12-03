@@ -113,7 +113,7 @@ bool ofxProceduralRoads::checkForCrossings(shared_ptr<Road> a){
     vector<Crossing> crossings;
 
     for(auto b : placed_list){
-        if (a->prev == nullptr || b->prev == nullptr || a->prev->node == b->prev->node || a->prev->node == b->node) { continue; }
+        if (b->prev == nullptr || a->prev->node == b->prev->node || a->prev->node == b->node) { continue; }
         
         ofVec2f crossing;
         
