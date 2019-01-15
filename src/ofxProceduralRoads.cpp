@@ -36,7 +36,7 @@ void ofxProceduralRoads::setup(){
     node.setParent(city->node);
     
     city->global_walk = 50;
-    road_limit = 100;
+    road_limit = 300;
 //    road_scalar = city->dimensions.x/10.0f;
     
     generate();
@@ -310,7 +310,7 @@ void ofxProceduralRoads::draw(){
 
 void ofxProceduralRoads::drawDebug(ofEasyCam* cam, ofVec3f mouse, bool numbers){
     glPointSize(5);
-    cam->begin();
+//    cam->begin();
     
     ofSetColor(ofColor(255,255,255));
     
@@ -365,13 +365,13 @@ void ofxProceduralRoads::drawDebug(ofEasyCam* cam, ofVec3f mouse, bool numbers){
     
     ofSetColor(ofColor(255,255,255));
     
-    cam->end();
+//    cam->end(dd1);
     
-//    ofSetColor(ofColor(0));
-//    ofDrawRectangle(0,0,200,30);
+    ofSetColor(ofColor(0));
+    ofDrawRectangle(0,0,200,30);
     ofSetColor(ofColor(255));
-//    ofDrawBitmapString("Total Nodes: " + ofToString(placed_list.size()), 10, 10);
-//    ofDrawBitmapString("Global Walk: " + ofToString(city->global_walk), 10, 25);
+    ofDrawBitmapString("Total Nodes: " + ofToString(placed_list.size()), 10, 10);
+    ofDrawBitmapString("Global Walk: " + ofToString(city->global_walk), 10, 25);
 }
 
 //-----------------------------------------------------------------------------

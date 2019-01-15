@@ -5,10 +5,10 @@ void ofApp::setup(){
     debug = true;
    
     city.setup();
-    city.setupGui();
+//    city.setupGui();
 
     drawElev = false;
-    drawPop = true;
+    drawPop = false;
     
     show_numbers = false;
     ofEnableDepthTest();
@@ -35,18 +35,13 @@ void ofApp::draw(){
     ofEnableDepthTest();
     ofSetBackgroundColor(ofColor(0));
 
-    cam->begin();
-        city.terrain.draw();
+//    cam->begin();
         city.roads.draw();
-    cam->end();
+//    cam->end();
     
     if(debug){
-        city.terrain.drawDebug(cam);
         city.roads.drawDebug(cam, ofVec2f(ofGetMouseX(), ofGetMouseY()), true);
     }
-    
-    ofDisableDepthTest();
-    city.gui.draw();
 }
 
 //--------------------------------------------------------------

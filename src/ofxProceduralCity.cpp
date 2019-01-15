@@ -9,8 +9,8 @@ void ofxProceduralCity::setup(){
     global_walk = 0;
     dimensions = ofVec2f(512,512);
     
-//    ofSetWindowShape(dimensions.x, dimensions.y);
-//    ofSetWindowPosition((ofGetScreenWidth() / 2.0)-(dimensions.x/2.0), (ofGetScreenHeight() / 2.0)-(dimensions.y/2.0));
+    ofSetWindowShape(dimensions.x, dimensions.y);
+    ofSetWindowPosition((ofGetScreenWidth() / 2.0)-(dimensions.x/2.0), (ofGetScreenHeight() / 2.0)-(dimensions.y/2.0));
     
     population_map.setup(3, 150, 500, dimensions);
     elevation_map.setup(9, 150, 500, dimensions);
