@@ -104,7 +104,6 @@ bool ofxProceduralRoads::localConstraints(shared_ptr<Road> a){
     
     bool crossings = checkForCrossings(a);
     bool dedupe = checkForDuplicates(a);
-//    bool dedupe = true;
     
     return dedupe;
 }
